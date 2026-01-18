@@ -8,9 +8,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.lang.RuntimeException
 
 @ControllerAdvice
-class ErrorHandlerController : ResponseEntityExceptionHandler() {
+final class ErrorHandlerController : ResponseEntityExceptionHandler() {
     @ExceptionHandler(value = [RuntimeException::class])
-    fun handleDefaultErrorPage(exception : ResponseStatusException) : ResponseEntity<ResponseStatusException> {
-        return ResponseEntity(exception, exception.status)
+    final fun handleDefaultErrorPage(exception : ResponseStatusException) : ResponseEntity<ResponseStatusException> {
+        return ResponseEntity(exception, exception.statusCode)
     }
 }

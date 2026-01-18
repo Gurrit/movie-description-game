@@ -1,11 +1,9 @@
 package xyz.engsmyre.moviedescriptiongame.tmdb.domain
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.springframework.data.redis.core.RedisHash
 import java.io.Serializable
 import java.time.LocalDate
 
-@RedisHash("Movie")
 class Movie internal constructor() : Serializable {
     @JsonProperty("id")
     var id = 0

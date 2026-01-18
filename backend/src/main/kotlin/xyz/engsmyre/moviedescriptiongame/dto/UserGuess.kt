@@ -1,11 +1,8 @@
 package xyz.engsmyre.moviedescriptiongame.dto
 
 import org.jetbrains.annotations.NotNull
-import xyz.engsmyre.moviedescriptiongame.dto.gameId.GameId
 
-data class UserGuess(@NotNull val movieGuess : String, @NotNull val gameId : GameId) {
-
-
+data class UserGuess(@NotNull val movieGuess : String, @NotNull val gameId : String) {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
