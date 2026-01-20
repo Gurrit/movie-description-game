@@ -2,7 +2,9 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm") version "2.3.0"
+
     id("org.jetbrains.kotlin.plugin.spring") version "2.3.0"
+    id("org.springframework.boot") version "4.0.1"
     application
 }
 
@@ -17,7 +19,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web:4.0.1")
     implementation("org.springframework.boot:spring-boot-starter-webflux:4.0.1")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb:4.0.1")
-}
+    runtimeOnly("org.jetbrains.kotlin:kotlin-reflect:2.3.0")}
 
 application {
     mainClass.set("xyz/engsmyre/moviedescriptiongame/MovieDescriptionGameApplication")

@@ -1,12 +1,11 @@
 package xyz.engsmyre.moviedescriptiongame.db.repository
 
-import org.springframework.stereotype.Repository
+import xyz.engsmyre.moviedescriptiongame.db.entity.ChallengeEntity
+import java.time.LocalDate
 
-@Repository
-class ChallengeRepository {
 
-    fun insertChallenge() {
-        TODO()
-    }
+interface ChallengeRepository {
+    fun insertChallenge(challengeEntity: ChallengeEntity): ChallengeEntity
+    fun getChallenge(day: LocalDate): ChallengeEntity?
 
 }

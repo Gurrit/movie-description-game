@@ -1,4 +1,4 @@
-FROM openjdk:11-jdk as BUILD
+FROM eclipse-temurin:21-noble as BUILD
 WORKDIR /app
 
 COPY build.gradle.kts build.gradle.kts

@@ -1,12 +1,14 @@
 package xyz.engsmyre.moviedescriptiongame.controller
 
-import org.apache.coyote.Response
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import xyz.engsmyre.moviedescriptiongame.db.entity.ChallengeEntity
 import xyz.engsmyre.moviedescriptiongame.service.AdminService
+import java.time.LocalDate
 
 @RestController
 @RequestMapping("/admin")
@@ -15,14 +17,19 @@ class AdminController(
 ) {
 
     @PostMapping("/challenge")
-    final fun updateChallenge(): ResponseEntity<String> { // TODO Response type
-        adminService.updateCurrentChallenge()
-        return ResponseEntity.ok("Yay, I did something")
+    final fun updateChallenge(): ResponseEntity<ChallengeEntity> { // TODO Response type
+        val challenge = adminService.updateCurrentChallenge()
+        return ResponseEntity(challenge, HttpStatus.OK)
     }
 
     @GetMapping("/challenge")
-    final fun getCurrentChallenge(): ResponseEntity<String> {  // TODO Response type
-        return ResponseEntity.ok("NOT IMPLEMENTED")
+    final fun getCurrentChallenge(): ResponseEntity<ChallengeEntity> {  // TODO Response type
+        val challenge = adminService.getChallenge(LocalDate.now())
+        // TODO Cleanup
+        if (challenge != null) {
+            return ResponseEntity(challenge, HttpStatus.OK)
+        }
+        return ResponseEntity.notFound().build()
     }
 
 }

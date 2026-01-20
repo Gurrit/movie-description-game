@@ -1,5 +1,6 @@
 package xyz.engsmyre.moviedescriptiongame.tmdb.repository
 
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -10,7 +11,7 @@ import xyz.engsmyre.moviedescriptiongame.tmdb.exception.TmdbCommunicationFailedE
 import xyz.engsmyre.moviedescriptiongame.tmdb.repository.helpers.RequestHelper.doBlockingDiscoveryRequest
 
 @Component
-final class PopularMoviesTmdbClient(@Qualifier("TmdbDiscoveryClient") private val tmdbWebClient: WebClient): PopularMoviesClient {
+final class PopularMoviesTmdbClient @Autowired constructor(@Qualifier("TmdbDiscoveryClient") private val tmdbWebClient: WebClient): PopularMoviesClient {
     @Value("\${tmdb.api_key}")
     final private val apiKey: String? = null
 
