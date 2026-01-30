@@ -4,7 +4,6 @@ import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.Field
-import java.time.LocalDate
 
 @Document(collection = "challenge")
 // TODO Finish this
@@ -14,7 +13,7 @@ data class ChallengeEntity (
     var id: ObjectId,
 
     @Field(MOVIE_NAME_KEY)
-    var movies: List<MovieEntity>,
+    var movies: List<MovieSubEntity>,
 
     @Field(DAY_KEY)
     var day: String

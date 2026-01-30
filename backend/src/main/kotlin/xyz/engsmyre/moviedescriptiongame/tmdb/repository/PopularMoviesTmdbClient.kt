@@ -11,7 +11,8 @@ import xyz.engsmyre.moviedescriptiongame.tmdb.exception.TmdbCommunicationFailedE
 import xyz.engsmyre.moviedescriptiongame.tmdb.repository.helpers.RequestHelper.doBlockingDiscoveryRequest
 
 @Component
-final class PopularMoviesTmdbClient @Autowired constructor(@Qualifier("TmdbDiscoveryClient") private val tmdbWebClient: WebClient): PopularMoviesClient {
+final class PopularMoviesTmdbClient @Autowired constructor(
+    @Qualifier("TmdbDiscoveryClient") private val tmdbWebClient: WebClient): PopularMoviesClient {
     @Value("\${tmdb.api_key}")
     final private val apiKey: String? = null
 
@@ -20,7 +21,7 @@ final class PopularMoviesTmdbClient @Autowired constructor(@Qualifier("TmdbDisco
             = 5000
 
     @Throws(TmdbCommunicationFailedException::class)
-    override fun getPopularMoviesFromPage(page: Int): List<Movie?> {
+    override fun getPopularMoviesFromPage(page: Int): List<Movie> {
         val webClientParams = PopularMovieRequest(
             apiKey!!,
             page,
@@ -29,7 +30,7 @@ final class PopularMoviesTmdbClient @Autowired constructor(@Qualifier("TmdbDisco
         return doBlockingDiscoveryRequest(webClientParams, tmdbWebClient).movies!!
     }
 
-    @get:Throws(TmdbCommunicationFailedException::class)
+ @get:Throws(TmdbCommunicationFailedException::class)
     override val popularMoviesPageCount: Int
         get() {
             val webClientParams = PopularMovieRequest(apiKey!!, voteCount).createParamsMap()
