@@ -19,7 +19,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web:4.0.1")
     implementation("org.springframework.boot:spring-boot-starter-webflux:4.0.1")
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb:4.0.1")
-    runtimeOnly("org.jetbrains.kotlin:kotlin-reflect:2.3.0")}
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0")
+    runtimeOnly("org.jetbrains.kotlin:kotlin-reflect:2.3.0")
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test:4.0.1")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+}
 
 application {
     mainClass.set("xyz/engsmyre/moviedescriptiongame/MovieDescriptionGameApplication")

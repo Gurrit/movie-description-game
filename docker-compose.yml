@@ -1,17 +1,13 @@
 services:
-  redis:
-    image: redis:5.0
+  frontend:
+    build:
+      context: app
+      dockerfile: Dockerfile
     ports:
-      - "6379:6379"
-#  frontend:
-#    build:
-#      context: app
-#      dockerfile: Dockerfile
-#    ports:
-#      - "3000:3000"
-#    volumes:
-#      - "./app/src:/usr/src/app/src"
-#      - "./app/public:/usr/src/app/public"
+      - "3000:3000"
+    volumes:
+      - "./app/src:/usr/src/app/src"
+      - "./app/public:/usr/src/app/public"
   mongo:
     image: mongodb/mongodb-community-server:latest
     container_name: mongo
@@ -21,19 +17,20 @@ services:
       MONGODB_INITDB_ROOT_USERNAME: root
       MONGODB_INITDB_ROOT_PASSWORD: example
 
-  #backend:
-  #  build:
-  #    context: backend
-      #dockerfile: Dockerfile
-    #environment:
-     # REDIS_HOST: "0.0.0.0"
-     # MONGO_HOST: "0.0.0.0"
+  backend:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      MONGO_HOST: "0.0.0.0"
 
   mongo-express:
     image: mongo-express
     restart: always
     ports:
-      - 8081:8080
+      - "8081:8080"
     environment:
       ME_CONFIG_MONGODB_PORT: 27017
       ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo

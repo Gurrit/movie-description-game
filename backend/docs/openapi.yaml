@@ -1,0 +1,514 @@
+openapi: 3.0.3
+info:
+  title: Movie Description Game API
+  description: |
+    A daily movie guessing game where players guess movies based on progressive clues.
+    Each day, 5 random movies are selected. Players request clues (year, director, actors, etc.),
+    lose points per clue, and submit guesses to earn scores.
+  version: 1.0.0
+  contact:
+    name: Movie Description Game
+    email: support@moviedescription.game
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.moviedescription.game
+    description: Production server
+
+tags:
+  - name: Challenge
+    description: Daily movie challenge operations
+  - name: Clue
+    description: Request clues for movies
+  - name: Guess
+    description: Submit guesses and get scores
+  - name: Session
+    description: Manage user game sessions
+  - name: Admin
+    description: Administrative operations
+
+paths:
+  /api/challenge/today:
+    get:
+      tags:
+        - Challenge
+      summary: Get today's challenge
+      description: Returns the current day's movie challenge with 5 movies
+      operationId: getTodayChallenge
+      responses:
+        '200':
+          description: Today's challenge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChallengeResponse'
+        '404':
+          description: No challenge exists for today yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/challenge/{date}:
+    get:
+      tags:
+        - Challenge
+      summary: Get challenge for a specific date
+      description: Returns the movie challenge for the specified date
+      operationId: getChallengeByDate
+      parameters:
+        - name: date
+          in: path
+          description: Date in ISO format (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-05-31"
+      responses:
+        '200':
+          description: Challenge for the specified date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChallengeResponse'
+        '400':
+          description: Invalid date format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No challenge exists for the specified date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/clue/{type}:
+    post:
+      tags:
+        - Clue
+      summary: Request a clue
+      description: |
+        Returns a clue of the specified type for the current movie.
+        Deducts points from the session's score based on the clue type.
+      operationId: getClue
+      parameters:
+        - name: type
+          in: path
+          description: Type of clue to request
+          required: true
+          schema:
+            $ref: '#/components/schemas/ClueType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClueRequest'
+      responses:
+        '200':
+          description: Clue and updated session state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClueResponse'
+        '400':
+          description: Invalid clue type or missing session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/guess:
+    post:
+      tags:
+        - Guess
+      summary: Submit a movie guess
+      description: |
+        Validates the guess against the current challenge's movies.
+        Returns whether the guess is correct and the score earned.
+        If correct, the movie is marked as guessed in the session.
+      operationId: submitGuess
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuessRequest'
+      responses:
+        '200':
+          description: Guess result and updated score
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuessResponse'
+        '400':
+          description: Invalid request (missing fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Session or challenge not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/session:
+    post:
+      tags:
+        - Session
+      summary: Create or get a session
+      description: Creates a new game session or returns an existing one for the current day's challenge
+      operationId: createSession
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId:
+                  type: string
+                  description: Optional existing session ID to resume
+                  example: "abc123"
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '201':
+          description: New session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+
+  /api/session/{sessionId}:
+    get:
+      tags:
+        - Session
+      summary: Get session state
+      description: Returns the current state of a game session
+      operationId: getSession
+      parameters:
+        - name: sessionId
+          in: path
+          description: Session ID
+          required: true
+          schema:
+            type: string
+            example: "abc123"
+      responses:
+        '200':
+          description: Session state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/admin/refresh:
+    post:
+      tags:
+        - Admin
+      summary: Regenerate today's challenge
+      description: Force regeneration of today's movie challenge (admin only)
+      operationId: refreshChallenge
+      security:
+        - api_key: []
+      responses:
+        '200':
+          description: Newly generated challenge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChallengeResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to generate challenge
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    api_key:
+      type: apiKey
+      name: X-Admin-Key
+      in: header
+      description: Admin API key for protected endpoints
+
+  schemas:
+    # Enums
+    ClueType:
+      type: string
+      enum:
+        - YEAR
+        - DIRECTOR
+        - ACTOR_1
+        - ACTOR_2
+        - ACTOR_3
+        - GENRE
+        - PLOT_HINT
+        - TITLE_HINT
+      description: Available clue types with associated point costs
+
+    # Requests
+    ClueRequest:
+      type: object
+      required:
+        - sessionId
+      properties:
+        sessionId:
+          type: string
+          description: Unique session identifier
+          example: "abc123-def456-ghi789"
+
+    GuessRequest:
+      type: object
+      required:
+        - sessionId
+        - movieId
+      properties:
+        sessionId:
+          type: string
+          description: Unique session identifier
+          example: "abc123-def456-ghi789"
+        movieId:
+          type: integer
+          description: TMDB movie ID being guessed
+          example: 12345
+
+    # Responses
+    ChallengeResponse:
+      type: object
+      required:
+        - id
+        - date
+        - movies
+      properties:
+        id:
+          type: string
+          description: Challenge unique identifier
+          example: "60d5ec9f8b3a3e2b4c8b4567"
+        date:
+          type: string
+          format: date
+          description: Date of the challenge
+          example: "2026-05-31"
+        movies:
+          type: array
+          description: List of movies in this challenge
+          items:
+            $ref: '#/components/schemas/MovieInfo'
+
+    ClueResponse:
+      type: object
+      required:
+        - clue
+        - clueType
+        - remainingScore
+        - cluesUsed
+      properties:
+        clue:
+          type: string
+          description: The clue value
+          example: "2010"
+        clueType:
+          $ref: '#/components/schemas/ClueType'
+        remainingScore:
+          type: integer
+          description: Current score after clue deduction
+          example: 850
+        cluesUsed:
+          type: array
+          description: List of clue types already used in this session
+          items:
+            $ref: '#/components/schemas/ClueType'
+        currentMovieIndex:
+          type: integer
+          description: Index of the current movie being guessed (0-4)
+          example: 0
+
+    GuessResponse:
+      type: object
+      required:
+        - correct
+        - score
+        - remainingMovies
+      properties:
+        correct:
+          type: boolean
+          description: Whether the guess was correct
+          example: true
+        score:
+          type: integer
+          description: Points earned from this guess (including clue penalties)
+          example: 850
+        movie:
+          type: object
+          description: The movie details (only present if correct)
+          allOf:
+            - $ref: '#/components/schemas/MovieInfo'
+        remainingMovies:
+          type: array
+          description: IDs of movies not yet guessed
+          items:
+            type: integer
+            example: [2, 3, 4]
+        totalScore:
+          type: integer
+          description: Cumulative score for all guessed movies
+          example: 1850
+        message:
+          type: string
+          description: Feedback message
+          example: "Correct! That was Inception (2010)"
+
+    SessionResponse:
+      type: object
+      required:
+        - sessionId
+        - challengeId
+        - currentScore
+        - cluesUsed
+        - guessedMovies
+      properties:
+        sessionId:
+          type: string
+          description: Unique session identifier
+          example: "abc123-def456-ghi789"
+        challengeId:
+          type: string
+          description: ID of the challenge being played
+          example: "60d5ec9f8b3a3e2b4c8b4567"
+        challengeDate:
+          type: string
+          format: date
+          description: Date of the challenge
+          example: "2026-05-31"
+        currentScore:
+          type: integer
+          description: Current score for the session
+          example: 1500
+        cluesUsed:
+          type: array
+          description: List of clue types used so far
+          items:
+            $ref: '#/components/schemas/ClueType'
+        guessedMovies:
+          type: array
+          description: List of guessed movie IDs
+          items:
+            type: integer
+            example: [12345]
+        correctGuesses:
+          type: array
+          description: List of correctly guessed movie IDs
+          items:
+            type: integer
+            example: [12345]
+        currentMovieIndex:
+          type: integer
+          description: Index of the current movie being guessed (0-4)
+          example: 0
+        startedAt:
+          type: string
+          format: date-time
+          description: When the session was started
+          example: "2026-05-31T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the session was last updated
+          example: "2026-05-31T10:15:00Z"
+
+    MovieInfo:
+      type: object
+      required:
+        - id
+        - title
+        - year
+      properties:
+        id:
+          type: integer
+          description: TMDB movie ID
+          example: 27205
+        title:
+          type: string
+          description: Movie title
+          example: "Inception"
+        originalTitle:
+          type: string
+          description: Original movie title
+          example: "Inception"
+        year:
+          type: string
+          description: Release year
+          example: "2010"
+        directors:
+          type: array
+          description: List of directors
+          items:
+            type: string
+            example: ["Christopher Nolan"]
+        genres:
+          type: array
+          description: List of genres
+          items:
+            type: string
+            example: ["Action", "Sci-Fi", "Thriller"]
+        posterUrl:
+          type: string
+          description: URL to movie poster
+          example: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: "NOT_FOUND"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "No challenge found for the specified date"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true

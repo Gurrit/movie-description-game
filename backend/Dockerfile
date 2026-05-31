@@ -7,8 +7,6 @@ COPY settings.gradle.kts settings.gradle.kts
 COPY gradle gradle
 COPY src src
 
-ENV REDIS_HOST mdg-redis
-
 RUN ./gradlew build --no-daemon -x test
 
 CMD ./gradlew run

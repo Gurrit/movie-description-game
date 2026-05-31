@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+// This file is deprecated. The new game UI is in use-case/game/Game.jsx
+// Kept for reference but not used in the new REST API-based frontend.
+
+import React from "react";
 import styled from "@emotion/styled";
 import MovieAutocomplete from "./movie-autocomplete";
 import AppButton from "../../common/app-button";
 import Divider from "@material-ui/core/Divider";
 import { Card, CardTitle } from "../../common/styling";
-import { subscribeToGameUpdates } from "../../api/gameCommunication/websocketGameSetup";
 
 const Movie = styled(Card)`
   display: grid;
@@ -22,42 +24,29 @@ const MovieDescription = styled.p`
   padding-left: 1.5rem;
 `;
 
+/**
+ * @deprecated Use Game.jsx from use-case/game instead
+ */
 class Guess extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      movieDescription: "This component is deprecated. Use the new Game component.",
+    };
+  }
 
-    constructor(props) {
-        super(props);
-        this.state = {
-            movieDescription: "Placeholder description"
-        };
-    }
-
-    componentDidMount() {
-        subscribeToGameUpdates(this.updateOnGameChange);
-    }
-
-    updateOnGameChange = (response) => {
-        const responseObject = JSON.parse(response)
-        this.setState({
-            movieDescription: responseObject.description
-        });
-    }
-
-    render() {
-        return (
-            <Movie>
-                <CardTitle>What's the movie?</CardTitle>
-                <MovieDescription>
-                    {this.state.movieDescription}
-                </MovieDescription>
-                <Divider/>
-                <MovieAutocomplete
-                />
-                <AppButton>
-                    {"Select movie to answer"}
-                </AppButton>
-            </Movie>
-        );
-    }
-};
+  render() {
+    return (
+      <Movie>
+        <CardTitle>Component Deprecated</CardTitle>
+        <MovieDescription>
+          {this.state.movieDescription}
+        </MovieDescription>
+        <Divider />
+        <AppButton disabled>Use Game.jsx instead</AppButton>
+      </Movie>
+    );
+  }
+}
 
 export default Guess;
