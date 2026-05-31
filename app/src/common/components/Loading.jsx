@@ -5,46 +5,7 @@
  */
 
 import React from "react";
-import styled from "@emotion/styled";
-import { keyframes } from "@emotion/react";
-
-// Animation
-const spin = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-`;
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-`;
-
-// Styled Components
-const LoadingContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  min-height: 200px;
-`;
-
-const Spinner = styled.div`
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #3498db;
-  border-radius: 50%;
-  animation: ${spin} 1s linear infinite;
-  margin-bottom: 1rem;
-`;
-
-const LoadingMessage = styled.p`
-  font-family: "Roboto", sans-serif;
-  color: #bdc3c7;
-  font-size: 1rem;
-  animation: ${pulse} 1.5s ease-in-out infinite;
-`;
+import { Spinner } from "react-bootstrap";
 
 /**
  * Loading Component
@@ -55,9 +16,21 @@ const LoadingMessage = styled.p`
  */
 export default function Loading({ message = "Loading...", fullPage = false }) {
   return (
-    <LoadingContainer style={fullPage ? { minHeight: "100vh" } : {}}>
-      <Spinner />
-      <LoadingMessage>{message}</LoadingMessage>
-    </LoadingContainer>
+    <div 
+      className="d-flex flex-column align-items-center justify-content-center p-5"
+      style={fullPage ? { minHeight: "100vh" } : { minHeight: "200px" }}
+    >
+      <Spinner 
+        animation="border" 
+        role="status"
+        variant="primary"
+        style={{ width: "3rem", height: "3rem", marginBottom: "1rem" }}
+      >
+        <span className="visually-hidden">Loading...</span>
+      </Spinner>
+      <p style={{ fontFamily: "'Roboto', sans-serif", color: "#bdc3c7", fontSize: "1rem" }}>
+        {message}
+      </p>
+    </div>
   );
 }

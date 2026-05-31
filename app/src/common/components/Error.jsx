@@ -5,45 +5,7 @@
  */
 
 import React from "react";
-import styled from "@emotion/styled";
 import AppButton from "../app-button";
-
-// Styled Components
-const ErrorContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  min-height: 200px;
-  text-align: center;
-`;
-
-const ErrorIcon = styled.div`
-  font-size: 3rem;
-  color: #e74c3c;
-  margin-bottom: 1rem;
-`;
-
-const ErrorTitle = styled.h3`
-  font-family: "Roboto", sans-serif;
-  color: #ecf0f1;
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-`;
-
-const ErrorMessage = styled.p`
-  font-family: "Roboto", sans-serif;
-  color: #95a5a6;
-  font-size: 1rem;
-  margin-bottom: 2rem;
-  max-width: 400px;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-`;
 
 /**
  * Error Component
@@ -56,12 +18,21 @@ const ButtonGroup = styled.div`
  */
 export default function Error({ message = "An error occurred", onRetry, onBack, fullPage = false }) {
   return (
-    <ErrorContainer style={fullPage ? { minHeight: "100vh" } : {}}>
-      <ErrorIcon>⚠️</ErrorIcon>
-      <ErrorTitle>Something went wrong</ErrorTitle>
-      <ErrorMessage>{message}</ErrorMessage>
+    <div 
+      className="d-flex flex-column align-items-center justify-content-center p-5 text-center"
+      style={fullPage ? { minHeight: "100vh" } : { minHeight: "200px" }}
+    >
+      <div style={{ fontSize: "3rem", color: "#e74c3c", marginBottom: "1rem" }}>
+        ⚠️
+      </div>
+      <h3 style={{ fontFamily: "'Roboto', sans-serif", color: "#ecf0f1", fontSize: "1.5rem", marginBottom: "0.5rem" }}>
+        Something went wrong
+      </h3>
+      <p style={{ fontFamily: "'Roboto', sans-serif", color: "#95a5a6", fontSize: "1rem", marginBottom: "2rem", maxWidth: "400px" }}>
+        {message}
+      </p>
       
-      <ButtonGroup>
+      <div className="d-flex gap-3">
         {onRetry && (
           <AppButton onClick={onRetry}>
             Try Again
@@ -72,7 +43,7 @@ export default function Error({ message = "An error occurred", onRetry, onBack, 
             Go Back
           </AppButton>
         )}
-      </ButtonGroup>
-    </ErrorContainer>
+      </div>
+    </div>
   );
 }

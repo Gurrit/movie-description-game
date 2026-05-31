@@ -1,0 +1,16 @@
+FROM node:20-alpine
+WORKDIR /usr/src/app
+
+# Copy package files first for better caching
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
+
+# Copy source files
+COPY ./src ./src
+COPY ./public ./public
+
+# Expose port
+EXPOSE 3000
+
+# Start development server
+CMD ["yarn", "start"]

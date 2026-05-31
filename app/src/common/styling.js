@@ -1,15 +1,14 @@
-import styled from "@emotion/styled";
+// Bootstrap-based styling components
+// These export Bootstrap utility classes that can be used throughout the app
 
-export const Card = styled.div`
-  background-color: #2d3436;
-  width: 450px;
-  margin: auto;
-  padding: 3rem;
-  border-radius: 1rem;
-`;
+export const Card = ({ children, className = "", ...props }) => (
+  <div className={`card bg-dark text-white ${className}`} style={{ width: "450px", margin: "auto", borderRadius: "1rem" }} {...props}>
+    {children}
+  </div>
+);
 
-export const CardTitle = styled.h2`
-  font-family: "Roboto", sans-serif;
-  font-size: 3rem;
-  color: white;
-`;
+export const CardTitle = ({ children, className = "", ...props }) => (
+  <h2 className={`font-roboto ${className}`} style={{ fontSize: "3rem", color: "white" }} {...props}>
+    {children}
+  </h2>
+);

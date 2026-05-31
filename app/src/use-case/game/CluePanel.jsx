@@ -6,115 +6,30 @@
  */
 
 import React, { useState } from "react";
-import styled from "@emotion/styled";
 import AppButton from "../../common/app-button";
-
-// Styled Components
-const CluePanelContainer = styled.div`
-  background: rgba(0, 0, 0, 0.2);
-  padding: 1.5rem;
-  border-radius: 0.75rem;
-  margin-bottom: 1.5rem;
-`;
-
-const CluePanelTitle = styled.h3`
-  font-family: "Roboto", sans-serif;
-  color: white;
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-`;
-
-const CluesUsedContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  min-height: 2.5rem;
-`;
-
-const ClueChip = styled.span`
-  background: ${(props) => {
-    switch (props.type) {
-      case "YEAR": return "#4a90e2";
-      case "DIRECTOR": return "#50c878";
-      case "ACTOR_1":
-      case "ACTOR_2":
-      case "ACTOR_3": return "#ff6b6b";
-      case "GENRE": return "#9b59b6";
-      case "PLOT_HINT": return "#f39c12";
-      case "TITLE_HINT": return "#e74c3c";
-      default: return "#95a5a6";
-    }
-  }};
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.875rem;
-  font-family: "Roboto", sans-serif;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-
-  &::before {
-    content: "-";
-    font-weight: bold;
-  }
-`;
-
-const ClueButtonsContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 0.75rem;
-`;
-
-const ClueButton = styled(AppButton)`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  background: ${(props) => {
-    switch (props.cluetype) {
-      case "YEAR": return "#3498db";
-      case "DIRECTOR": return "#27ae60";
-      case "ACTOR_1": return "#e74c3c";
-      case "ACTOR_2": return "#c0392b";
-      case "ACTOR_3": return "#a93226";
-      case "GENRE": return "#8e44ad";
-      case "PLOT_HINT": return "#f39c12";
-      case "TITLE_HINT": return "#d35400";
-      default: return "#7f8c8d";
-    }
-  }};
-  border: none;
-  transition: transform 0.1s ease, opacity 0.1s ease;
-
-  &:hover:not(:disabled) {
-    transform: scale(1.05);
-    opacity: 0.9;
-  }
-
-  &:disabled {
-    background: #555;
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-`;
-
-const ClueCost = styled.span`
-  font-size: 0.75rem;
-  opacity: 0.8;
-  margin-left: 0.25rem;
-`;
 
 // Clue type configuration
 const CLUE_CONFIG = {
-  YEAR: { label: "Year", cost: 50, disabledAfterGuess: false },
-  DIRECTOR: { label: "Director", cost: 100, disabledAfterGuess: false },
-  ACTOR_1: { label: "Lead Actor", cost: 150, disabledAfterGuess: false },
-  ACTOR_2: { label: "Actor 2", cost: 200, disabledAfterGuess: false },
-  ACTOR_3: { label: "Actor 3", cost: 250, disabledAfterGuess: false },
-  GENRE: { label: "Genre", cost: 75, disabledAfterGuess: false },
-  PLOT_HINT: { label: "Plot Hint", cost: 300, disabledAfterGuess: false },
-  TITLE_HINT: { label: "Title Hint", cost: 500, disabledAfterGuess: false },
+  YEAR: { label: "Year", cost: 50, disabledAfterGuess: false, color: "#3498db" },
+  DIRECTOR: { label: "Director", cost: 100, disabledAfterGuess: false, color: "#27ae60" },
+  ACTOR_1: { label: "Lead Actor", cost: 150, disabledAfterGuess: false, color: "#e74c3c" },
+  ACTOR_2: { label: "Actor 2", cost: 200, disabledAfterGuess: false, color: "#c0392b" },
+  ACTOR_3: { label: "Actor 3", cost: 250, disabledAfterGuess: false, color: "#a93226" },
+  GENRE: { label: "Genre", cost: 75, disabledAfterGuess: false, color: "#8e44ad" },
+  PLOT_HINT: { label: "Plot Hint", cost: 300, disabledAfterGuess: false, color: "#f39c12" },
+  TITLE_HINT: { label: "Title Hint", cost: 500, disabledAfterGuess: false, color: "#d35400" },
+};
+
+const CHIP_COLORS = {
+  YEAR: "#4a90e2",
+  DIRECTOR: "#50c878",
+  ACTOR_1: "#ff6b6b",
+  ACTOR_2: "#ff6b6b",
+  ACTOR_3: "#ff6b6b",
+  GENRE: "#9b59b6",
+  PLOT_HINT: "#f39c12",
+  TITLE_HINT: "#e74c3c",
+  default: "#95a5a6",
 };
 
 /**
@@ -152,39 +67,65 @@ export default function CluePanel({ sessionId, usedClues = [], onRequestClue }) 
     }
 
     return usedClues.map((clueType) => (
-      <ClueChip key={clueType} type={clueType}>
+      <span
+        key={clueType}
+        style={{
+          background: CHIP_COLORS[clueType] || CHIP_COLORS.default,
+          color: "white",
+          padding: "0.25rem 0.75rem",
+          borderRadius: "1rem",
+          fontSize: "0.875rem",
+          fontFamily: "'Roboto', sans-serif",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.25rem",
+        }}
+      >
+        <span style={{ fontWeight: "bold" }}>-</span>
         {CLUE_CONFIG[clueType]?.label || clueType}
-      </ClueChip>
+      </span>
     ));
   };
 
   return (
-    <CluePanelContainer>
-      <CluePanelTitle>Request a Clue</CluePanelTitle>
+    <div className="p-4 mb-4" style={{ background: "rgba(0, 0, 0, 0.2)", borderRadius: "0.75rem" }}>
+      <h3 style={{ fontFamily: "'Roboto', sans-serif", color: "white", marginBottom: "1rem", fontSize: "1.25rem" }}>
+        Request a Clue
+      </h3>
 
-      <CluesUsedContainer>
+      <div className="d-flex flex-wrap gap-2 mb-3" style={{ minHeight: "2.5rem" }}>
         {renderUsedClues()}
-      </CluesUsedContainer>
+      </div>
 
-      <ClueButtonsContainer>
+      <div className="d-grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
         {Object.entries(CLUE_CONFIG).map(([type, config]) => {
           const used = isClueUsed(type);
           const disabled = used || requesting === type;
 
           return (
-            <ClueButton
+            <AppButton
               key={type}
               onClick={() => handleRequestClue(type)}
               disabled={disabled}
-              cluetype={type}
+              variant="primary"
+              className="w-100"
+              style={{
+                padding: "0.75rem 1rem",
+                fontSize: "0.875rem",
+                background: disabled ? "#555" : config.color,
+                border: "none",
+                transition: "transform 0.1s ease, opacity 0.1s ease",
+              }}
             >
               {config.label}
-              <ClueCost>-{config.cost}</ClueCost>
+              <span style={{ fontSize: "0.75rem", opacity: "0.8", marginLeft: "0.25rem" }}>
+                -{config.cost}
+              </span>
               {requesting === type && "..."}
-            </ClueButton>
+            </AppButton>
           );
         })}
-      </ClueButtonsContainer>
-    </CluePanelContainer>
+      </div>
+    </div>
   );
 }

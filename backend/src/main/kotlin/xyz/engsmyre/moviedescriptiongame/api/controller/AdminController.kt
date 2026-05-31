@@ -15,7 +15,7 @@ import xyz.engsmyre.moviedescriptiongame.service.AdminService
 
 @Tag(name = "Admin", description = "Administrative operations")
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/admin")
 class AdminController(
     private val adminService: AdminService,
     private val challengeMapper: ChallengeMapper

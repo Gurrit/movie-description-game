@@ -19,6 +19,7 @@ class AdminService @Autowired constructor(
 ) {
 
     fun updateCurrentChallenge(): ChallengeEntity {
+        println("GOT REQUEST TO update current challenge")
         val tmdbMovies = popularMoviesTmdbClient.getPopularMoviesFromPage(1)
         val selectedMovies = tmdbMovies.shuffled().take(challengeCount)
 

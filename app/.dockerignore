@@ -1,0 +1,11 @@
+node_modules
+build
+.DS_Store
+*.log
+*.md
+.idea
+.git
+.gitignore
+.yarn
+.env
+Dockerfile.dev

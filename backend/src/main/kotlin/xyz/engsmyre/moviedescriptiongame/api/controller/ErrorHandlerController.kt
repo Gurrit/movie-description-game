@@ -16,6 +16,7 @@ class ErrorHandlerController {
 
     @ExceptionHandler(CustomException::class)
     fun handleCustomException(ex: CustomException): ResponseEntity<ErrorResponse> {
+        println("EXCEPTION $ex")
         return ResponseEntity.status(ex.statusCode).body(
             ErrorResponse(
                 error = "${ex.statusCode.value()}",
@@ -27,6 +28,7 @@ class ErrorHandlerController {
 
     @ExceptionHandler(ResponseStatusException::class)
     fun handleResponseStatusException(ex: ResponseStatusException): ResponseEntity<ErrorResponse> {
+        println("EXCEPTION $ex")
         return ResponseEntity.status(ex.statusCode).body(
             ErrorResponse(
                 error = "${ex.statusCode.value()}",
@@ -38,6 +40,7 @@ class ErrorHandlerController {
 
     @ExceptionHandler(IllegalArgumentException::class)
     fun handleIllegalArgumentException(ex: IllegalArgumentException): ResponseEntity<ErrorResponse> {
+        println("EXCEPTION $ex")
         return ResponseEntity.badRequest().body(
             ErrorResponse(
                 error = "BAD_REQUEST",
@@ -49,6 +52,7 @@ class ErrorHandlerController {
 
     @ExceptionHandler(IllegalStateException::class)
     fun handleIllegalStateException(ex: IllegalStateException): ResponseEntity<ErrorResponse> {
+        println("EXCEPTION $ex")
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
             ErrorResponse(
                 error = "INTERNAL_ERROR",
@@ -60,6 +64,7 @@ class ErrorHandlerController {
 
     @ExceptionHandler(NoSuchElementException::class)
     fun handleNoSuchElementException(ex: NoSuchElementException): ResponseEntity<ErrorResponse> {
+        println("EXCEPTION $ex")
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
             ErrorResponse(
                 error = "NOT_FOUND",
@@ -71,6 +76,7 @@ class ErrorHandlerController {
 
     @ExceptionHandler(DateTimeParseException::class)
     fun handleDateTimeParseException(ex: DateTimeParseException): ResponseEntity<ErrorResponse> {
+        println("EXCEPTION $ex")
         return ResponseEntity.badRequest().body(
             ErrorResponse(
                 error = "INVALID_DATE_FORMAT",
@@ -86,6 +92,7 @@ class ErrorHandlerController {
     @ExceptionHandler(Exception::class)
     fun handleGenericException(ex: Exception): ResponseEntity<ErrorResponse> {
         // Don't expose internal error details in production
+        println("EXCEPTION $ex")
         return ResponseEntity.internalServerError().body(
             ErrorResponse(
                 error = "INTERNAL_SERVER_ERROR",

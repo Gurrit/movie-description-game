@@ -6,64 +6,7 @@
  */
 
 import React from "react";
-import styled from "@emotion/styled";
 import { Card, CardTitle } from "../../common/styling";
-
-// Styled Components
-const MovieCardContainer = styled(Card)`
-  width: 100%;
-  padding: 1rem;
-`;
-
-const MoviePoster = styled.img`
-  width: 100%;
-  height: auto;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-  aspect-ratio: 2/3;
-  object-fit: cover;
-  background: #222;
-`;
-
-const MovieDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const MovieMeta = styled.p`
-  font-family: "Roboto", sans-serif;
-  font-size: 0.875rem;
-  color: #bdc3c7;
-  margin: 0.25rem 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-`;
-
-const MetaLabel = styled.span`
-  color: #7f8c8d;
-  font-weight: 500;
-`;
-
-const MetaValue = styled.span`
-  color: #ecf0f1;
-`;
-
-const MovieDescription = styled.p`
-  font-family: "Roboto", sans-serif;
-  font-size: 0.875rem;
-  color: #95a5a6;
-  line-height: 1.5;
-  margin-top: 0.5rem;
-`;
-
-const NoMovie = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #7f8c8d;
-  font-family: "Roboto", sans-serif;
-`;
 
 /**
  * MovieCard Component
@@ -75,9 +18,11 @@ const NoMovie = styled.div`
 export default function MovieCard({ movie, showDescription = true }) {
   if (!movie) {
     return (
-      <MovieCardContainer>
-        <NoMovie>Guess the movie to reveal details!</NoMovie>
-      </MovieCardContainer>
+      <Card style={{ width: "100%", padding: "1rem" }}>
+        <div style={{ textAlign: "center", padding: "2rem", color: "#7f8c8d", fontFamily: "'Roboto', sans-serif" }}>
+          Guess the movie to reveal details!
+        </div>
+      </Card>
     );
   }
 
@@ -89,48 +34,51 @@ export default function MovieCard({ movie, showDescription = true }) {
     : null;
 
   return (
-    <MovieCardContainer>
+    <Card style={{ width: "100%", padding: "1rem" }}>
       <CardTitle style={{ marginBottom: "1rem" }}>
         {movie.title}
         {movie.year && ` (${movie.year})`}
       </CardTitle>
 
       {posterUrl && (
-        <MoviePoster
+        <img
           src={posterUrl}
           alt={movie.title}
+          style={{ width: "100%", height: "auto", borderRadius: "0.5rem", marginBottom: "1rem", aspectRatio: "2/3", objectFit: "cover", background: "#222" }}
           onError={(e) => {
             e.target.style.display = "none";
           }}
         />
       )}
 
-      <MovieDetails>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
         {movie.directors?.length > 0 && (
-          <MovieMeta>
-            <MetaLabel>Director:</MetaLabel>
-            <MetaValue>{movie.directors.join(", ")}</MetaValue>
-          </MovieMeta>
+          <p style={{ fontFamily: "'Roboto', sans-serif", fontSize: "0.875rem", color: "#bdc3c7", margin: "0.25rem 0", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            <span style={{ color: "#7f8c8d", fontWeight: "500" }}>Director:</span>
+            <span style={{ color: "#ecf0f1" }}>{movie.directors.join(", ")}</span>
+          </p>
         )}
 
         {movie.genres?.length > 0 && (
-          <MovieMeta>
-            <MetaLabel>Genres:</MetaLabel>
-            <MetaValue>{movie.genres.join(", ")}</MetaValue>
-          </MovieMeta>
+          <p style={{ fontFamily: "'Roboto', sans-serif", fontSize: "0.875rem", color: "#bdc3c7", margin: "0.25rem 0", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            <span style={{ color: "#7f8c8d", fontWeight: "500" }}>Genres:</span>
+            <span style={{ color: "#ecf0f1" }}>{movie.genres.join(", ")}</span>
+          </p>
         )}
 
         {movie.billings && Object.values(movie.billings).length > 0 && (
-          <MovieMeta>
-            <MetaLabel>Actors:</MetaLabel>
-            <MetaValue>{Object.values(movie.billings).join(", ")}</MetaValue>
-          </MovieMeta>
+          <p style={{ fontFamily: "'Roboto', sans-serif", fontSize: "0.875rem", color: "#bdc3c7", margin: "0.25rem 0", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            <span style={{ color: "#7f8c8d", fontWeight: "500" }}>Actors:</span>
+            <span style={{ color: "#ecf0f1" }}>{Object.values(movie.billings).join(", ")}</span>
+          </p>
         )}
 
         {showDescription && movie.description && (
-          <MovieDescription>{movie.description}</MovieDescription>
+          <p style={{ fontFamily: "'Roboto', sans-serif", fontSize: "0.875rem", color: "#95a5a6", lineHeight: "1.5", marginTop: "0.5rem" }}>
+            {movie.description}
+          </p>
         )}
-      </MovieDetails>
-    </MovieCardContainer>
+      </div>
+    </Card>
   );
 }

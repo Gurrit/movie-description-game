@@ -16,7 +16,7 @@ import xyz.engsmyre.moviedescriptiongame.service.GuessService
 
 @Tag(name = "Guess", description = "Submit guesses and get scores")
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/guess")
 class GuessController(
     private val guessService: GuessService
 ) {
@@ -32,7 +32,7 @@ class GuessController(
             ApiResponse(responseCode = "404", description = "Session or challenge not found", content = [Content(mediaType = "application/json")])
         ]
     )
-    @PostMapping("/guess")
+    @PostMapping()
     fun submitGuess(
         @RequestBody
         guessRequest: GuessRequest

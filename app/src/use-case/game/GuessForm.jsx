@@ -6,64 +6,8 @@
  */
 
 import React, { useState, useEffect } from "react";
-import styled from "@emotion/styled";
 import AppButton from "../../common/app-button";
 import MovieAutocomplete from "../guess/movie-autocomplete/MovieAutocomplete.comp";
-
-// Styled Components
-const GuessFormContainer = styled.div`
-  background: rgba(0, 0, 0, 0.2);
-  padding: 1.5rem;
-  border-radius: 0.75rem;
-`;
-
-const GuessFormTitle = styled.h3`
-  font-family: "Roboto", sans-serif;
-  color: white;
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-`;
-
-const SubmitButton = styled(AppButton)`
-  width: 100%;
-  margin-top: 1rem;
-  padding: 1rem 2rem;
-  font-size: 1rem;
-`;
-
-const GuessInputContainer = styled.div`
-  margin-bottom: 1rem;
-`;
-
-const FeedbackMessage = styled.div`
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  margin: 1rem 0;
-  font-family: "Roboto", sans-serif;
-  font-size: 0.9rem;
-  text-align: center;
-
-  ${(props) => {
-    if (props.success) {
-      return {
-        background: "rgba(46, 204, 113, 0.2)",
-        color: "#2ecc71",
-        border: "1px solid #2ecc71",
-      };
-    }
-    if (props.error) {
-      return {
-        background: "rgba(231, 76, 60, 0.2)",
-        color: "#e74c3c",
-        border: "1px solid #e74c3c",
-      };
-    }
-    return {
-      background: "rgba(149, 165, 166, 0.2)",
-      color: "#95a5a6",
-    };
-  }}
-`;
 
 /**
  * GuessForm Component
@@ -139,19 +83,27 @@ export default function GuessForm({ sessionId, movies = [], onGuess, disabled = 
   };
 
   return (
-    <GuessFormContainer onSubmit={handleSubmit}>
-      <GuessFormTitle>What is this movie?</GuessFormTitle>
+    <div className="p-4 mb-3" style={{ background: "rgba(0, 0, 0, 0.2)", borderRadius: "0.75rem" }} onSubmit={handleSubmit}>
+      <h3 style={{ fontFamily: "'Roboto', sans-serif", color: "white", marginBottom: "1rem", fontSize: "1.25rem" }}>
+        What is this movie?
+      </h3>
 
       {feedback && (
-        <FeedbackMessage
-          success={feedback.success}
-          error={feedback.error}
+        <div 
+          className="p-3 mb-3 rounded text-center"
+          style={{
+            fontFamily: "'Roboto', sans-serif",
+            fontSize: "0.9rem",
+            background: feedback.success ? "rgba(46, 204, 113, 0.2)" : feedback.error ? "rgba(231, 76, 60, 0.2)" : "rgba(149, 165, 166, 0.2)",
+            color: feedback.success ? "#2ecc71" : feedback.error ? "#e74c3c" : "#95a5a6",
+            border: feedback.success ? "1px solid #2ecc71" : feedback.error ? "1px solid #e74c3c" : "none"
+          }}
         >
           {feedback.message}
-        </FeedbackMessage>
+        </div>
       )}
 
-      <GuessInputContainer onKeyDown={handleKeyDown}>
+      <div className="mb-3" onKeyDown={handleKeyDown}>
         <MovieAutocomplete
           movies={movies}
           selectedMovie={selectedMovie}
@@ -159,15 +111,17 @@ export default function GuessForm({ sessionId, movies = [], onGuess, disabled = 
           disabled={disabled || submitting}
           placeholder="Start typing to search movies..."
         />
-      </GuessInputContainer>
+      </div>
 
-      <SubmitButton
+      <AppButton
         type="submit"
         onClick={handleSubmit}
         disabled={!selectedMovie || disabled || submitting}
+        fullWidth
+        size="large"
       >
         {submitting ? "Submitting..." : "Submit Guess"}
-      </SubmitButton>
-    </GuessFormContainer>
+      </AppButton>
+    </div>
   );
 }

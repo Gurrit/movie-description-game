@@ -2,29 +2,14 @@ import React from "react";
 import ReactDOM from "react-dom";
 import App from "./app";
 import reportWebVitals from "./reportWebVitals";
-import createMuiTheme from "@material-ui/core/styles/createMuiTheme";
-import ThemeProvider from "@material-ui/core/styles/ThemeProvider";
 import { BrowserRouter } from "react-router-dom";
-
-const darkTheme = createMuiTheme({
-  palette: {
-    mode: "dark",
-    primary: {
-      main: "#05c46b",
-    },
-  },
-  typography: {
-    fontSize: 20,
-  },
-});
+import "bootstrap/dist/css/bootstrap.min.css";
 
 ReactDOM.render(
   <React.StrictMode>
-    <ThemeProvider theme={darkTheme}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </ThemeProvider>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>,
   document.getElementById("root")
 );

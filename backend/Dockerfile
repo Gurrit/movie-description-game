@@ -1,23 +1,18 @@
-FROM eclipse-temurin:21-noble as BUILD
+FROM eclipse-temurin:21-noble
 WORKDIR /app
 
+# Copy build files
 COPY build.gradle.kts build.gradle.kts
 COPY gradlew gradlew
 COPY settings.gradle.kts settings.gradle.kts
 COPY gradle gradle
 COPY src src
 
+# Build the application
 RUN ./gradlew build --no-daemon -x test
 
-CMD ./gradlew run
+# Expose the port the app runs on
+EXPOSE 8080
 
-#FROM openjdk:11-jdk as BACKEND
-
-#WORKDIR /app
-#COPY --from=BUILD /app/build/ ./build/
-#COPY ./gradlew ./gradlew
-#COPY gradle gradle
-#RUN ls
-
-#RUN ./gradlew run
-
+# Run the application
+CMD ["./gradlew", "run"]

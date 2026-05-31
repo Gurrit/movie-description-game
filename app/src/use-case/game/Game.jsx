@@ -6,8 +6,7 @@
  */
 
 import React from "react";
-import { useParams, useHistory } from "react-router-dom";
-import styled from "@emotion/styled";
+import { useParams, useNavigate } from "react-router-dom";
 import CluePanel from "./CluePanel";
 import GuessForm from "./GuessForm";
 import MovieCard from "./MovieCard";
@@ -18,57 +17,13 @@ import Loading from "../../common/components/Loading";
 import Error from "../../common/components/Error";
 import AppButton from "../../common/app-button";
 
-// Styled Components
-const GameContainer = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-`;
-
-const GameHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const MovieSection = styled.div`
-  display: flex;
-  gap: 2rem;
-  align-items: flex-start;
-`;
-
-const MainContent = styled.div`
-  flex: 1;
-`;
-
-const Sidebar = styled.div`
-  width: 300px;
-  min-width: 300px;
-`;
-
-const GameComplete = styled.div`
-  text-align: center;
-  padding: 3rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 1rem;
-`;
-
-const GameTitle = styled.h2`
-  font-family: "Roboto", sans-serif;
-  color: white;
-  font-size: 2rem;
-`;
-
 /**
  * Main Game Component
  * Handles game flow, state management, and renders appropriate UI
  */
 export default function Game() {
   const { sessionId } = useParams();
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const {
     session,
@@ -92,16 +47,16 @@ export default function Game() {
     if (hasWon && sessionId) {
       // Could auto-redirect to results page, or show overlay
     }
-  }, [hasWon, sessionId, history]);
+  }, [hasWon, sessionId, navigate]);
 
   const handleNewGame = () => {
     resetGame();
-    history.push("/");
+    navigate("/");
   };
 
   const handleGameWon = () => {
     // Navigate to results or show modal
-    history.push(`/play/${sessionId}/results`);
+    navigate(`/play/${sessionId}/results`);
   };
 
   if (loading && !session) {
@@ -113,7 +68,7 @@ export default function Game() {
       <Error
         message={error}
         onRetry={initGame}
-        onBack={() => history.push("/")}
+        onBack={() => navigate("/")}
       />
     );
   }
@@ -123,17 +78,17 @@ export default function Game() {
   }
 
   return (
-    <GameContainer>
-      <GameHeader>
-        <GameTitle>
+    <div className="mx-auto p-4" style={{ maxWidth: "800px", display: "flex", flexDirection: "column", gap: "2rem" }}>
+      <div className="d-flex justify-content-between align-items-center">
+        <h2 style={{ fontFamily: "'Roboto', sans-serif", color: "white", fontSize: "2rem" }}>
           Movie {currentMovieIndex + 1} of {totalMovies}
-        </GameTitle>
+        </h2>
         <ScoreDisplay
           score={currentScore}
           total={totalMovies * 1000}
           percentage={scorePercentage}
         />
-      </GameHeader>
+      </div>
 
       <ProgressIndicator
         current={currentMovieIndex + 1}
@@ -141,8 +96,8 @@ export default function Game() {
         correctGuesses={session.correctGuesses || []}
       />
 
-      <MovieSection>
-        <MainContent>
+      <div className="d-flex gap-4 align-items-start">
+        <div className="flex-grow-1">
           <CluePanel
             sessionId={session.sessionId}
             usedClues={session.cluesUsed || []}
@@ -155,32 +110,32 @@ export default function Game() {
             onGuess={guessMovie}
             disabled={hasWon}
           />
-        </MainContent>
+        </div>
 
-        <Sidebar>
+        <div style={{ width: "300px", minWidth: "300px" }}>
           {hasWon ? (
-            <GameComplete>
+            <div className="text-center p-4" style={{ background: "rgba(0, 0, 0, 0.3)", borderRadius: "1rem" }}>
               <h3>Congratulations! You won!</h3>
               <p>Final Score: {currentScore}</p>
               <AppButton onClick={handleGameWon}>
                 View Results
               </AppButton>
-              <AppButton onClick={handleNewGame} variant="secondary">
+              <AppButton onClick={handleNewGame} variant="secondary" className="ms-2">
                 Play Again
               </AppButton>
-            </GameComplete>
+            </div>
           ) : (
             <>
               <MovieCard movie={currentMovie} />
               {currentMovieIndex > 0 && (
-                <AppButton onClick={() => history.goBack()}>
+                <AppButton onClick={() => navigate(-1)} className="mt-2">
                   Back to Previous
                 </AppButton>
               )}
             </>
           )}
-        </Sidebar>
-      </MovieSection>
-    </GameContainer>
+        </div>
+      </div>
+    </div>
   );
 }

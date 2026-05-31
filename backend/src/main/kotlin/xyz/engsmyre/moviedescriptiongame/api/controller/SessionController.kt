@@ -20,7 +20,7 @@ import xyz.engsmyre.moviedescriptiongame.service.SessionService
 
 @Tag(name = "Session", description = "Manage user game sessions")
 @RestController
-@RequestMapping("/api/session")
+@RequestMapping("/session")
 class SessionController(
     private val sessionService: SessionService,
     private val sessionMapper: SessionMapper
@@ -41,6 +41,7 @@ class SessionController(
         @RequestBody
         sessionRequest: SessionRequest
     ): ResponseEntity<SessionResponse> {
+        println("GOT HERE")
         val session = if (sessionRequest.sessionId != null) {
             sessionService.getSession(sessionRequest.sessionId)
                 ?: sessionService.createSession()

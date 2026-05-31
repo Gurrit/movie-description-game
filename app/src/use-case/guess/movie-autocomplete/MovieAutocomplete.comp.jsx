@@ -1,12 +1,10 @@
-import CircularProgress from "@material-ui/core/CircularProgress";
-import Autocomplete from "@material-ui/core/Autocomplete";
-import TextField from "@material-ui/core/TextField";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { Form, Dropdown } from "react-bootstrap";
 
 /**
  * MovieAutocomplete Component
  * 
- * Autocomplete input for selecting movies from a list.
+ * Autocomplete input for selecting movies from a list using Bootstrap.
  * 
  * @param {Object} props
  * @param {Array<Object>} props.movies - List of movies to select from
@@ -22,29 +20,22 @@ const MovieAutocomplete = ({
   disabled = false,
   placeholder = "Search movies...",
 }) => {
-  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [options, setOptions] = useState([]);
-  const loading = open && options.length === 0;
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredMovies, setFilteredMovies] = useState([]);
 
   // Filter movies based on search input
   useEffect(() => {
-    if (open && search) {
+    if (search) {
       const filtered = movies.filter((movie) =>
         movie.title.toLowerCase().includes(search.toLowerCase()) ||
         movie.originalTitle?.toLowerCase().includes(search.toLowerCase())
       );
-      setOptions(filtered);
-    } else if (open) {
-      setOptions(movies);
+      setFilteredMovies(filtered);
+    } else {
+      setFilteredMovies(movies);
     }
-  }, [open, search, movies]);
-
-  useEffect(() => {
-    if (!open) {
-      setOptions([]);
-    }
-  }, [open]);
+  }, [search, movies]);
 
   // Map movie object to display format
   const getOptionLabel = (option) => {
@@ -53,46 +44,54 @@ const MovieAutocomplete = ({
     return `${option.title} (${option.year})`;
   };
 
+  const handleSelect = (movie) => {
+    setSearch(getOptionLabel(movie));
+    setShowDropdown(false);
+    if (onSelect) {
+      onSelect(movie);
+    }
+  };
+
+  const handleFocus = () => {
+    setShowDropdown(true);
+  };
+
+  const handleBlur = () => {
+    // Delay hiding to allow click on dropdown item
+    setTimeout(() => setShowDropdown(false), 200);
+  };
+
   return (
-    <Autocomplete
-      open={open}
-      onOpen={() => {
-        setOpen(true);
-      }}
-      onClose={() => {
-        setOpen(false);
-      }}
-      getOptionSelected={(option, value) => option.id === value?.id}
-      getOptionLabel={getOptionLabel}
-      options={options}
-      loading={loading}
-      value={selectedMovie}
-      onChange={(e, newValue) => {
-        if (onSelect) {
-          onSelect(newValue);
-        }
-      }}
-      disabled={disabled}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          label={placeholder}
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <>
-                {loading ? (
-                  <CircularProgress color="inherit" size={20} />
-                ) : null}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
-        />
-      )}
-    />
+    <Dropdown show={showDropdown} onToggle={(isOpen) => setShowDropdown(isOpen)}>
+      <Form.Control
+        type="text"
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setShowDropdown(true);
+        }}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        disabled={disabled}
+        autoComplete="off"
+      />
+      <Dropdown.Menu show={showDropdown} style={{ maxHeight: "300px", overflowY: "auto", width: "100%" }}>
+        {filteredMovies.length > 0 ? (
+          filteredMovies.map((movie) => (
+            <Dropdown.Item
+              key={movie.id}
+              onClick={() => handleSelect(movie)}
+              active={selectedMovie?.id === movie.id}
+            >
+              {getOptionLabel(movie)}
+            </Dropdown.Item>
+          ))
+        ) : (
+          <Dropdown.Item disabled>No movies found</Dropdown.Item>
+        )}
+      </Dropdown.Menu>
+    </Dropdown>
   );
 };
 

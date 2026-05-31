@@ -5,7 +5,6 @@ import React from "react";
 import styled from "@emotion/styled";
 import MovieAutocomplete from "./movie-autocomplete";
 import AppButton from "../../common/app-button";
-import Divider from "@material-ui/core/Divider";
 import { Card, CardTitle } from "../../common/styling";
 
 const Movie = styled(Card)`
@@ -22,6 +21,13 @@ const MovieDescription = styled.p`
   color: white;
   border-left: 10px solid white;
   padding-left: 1.5rem;
+`;
+
+const StyledHr = styled.hr`
+  border: 0;
+  height: 1px;
+  background: #333;
+  background-image: linear-gradient(to right, #ccc, #333, #ccc);
 `;
 
 /**
@@ -42,7 +48,7 @@ class Guess extends React.Component {
         <MovieDescription>
           {this.state.movieDescription}
         </MovieDescription>
-        <Divider />
+        <StyledHr />
         <AppButton disabled>Use Game.jsx instead</AppButton>
       </Movie>
     );

@@ -19,7 +19,7 @@ import xyz.engsmyre.moviedescriptiongame.service.ClueService
 
 @Tag(name = "Clue", description = "Request clues for movies")
 @RestController
-@RequestMapping("/api/clue")
+@RequestMapping("/clue")
 class ClueController(
     private val clueService: ClueService
 ) {

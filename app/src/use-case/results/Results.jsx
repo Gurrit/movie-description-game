@@ -5,8 +5,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { useParams, useHistory } from "react-router-dom";
-import styled from "@emotion/styled";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardTitle } from "../../common/styling";
 import AppButton from "../../common/app-button";
 import Loading from "../../common/components/Loading";
@@ -14,96 +13,13 @@ import Error from "../../common/components/Error";
 import { getSession, getTodayChallenge, createSession } from "../../api/client";
 import MovieCard from "../game/MovieCard";
 
-// Styled Components
-const ResultsContainer = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-`;
-
-const ResultsHeader = styled(Card)`
-  padding: 2rem;
-  text-align: center;
-`;
-
-const ScoreSummary = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: center;
-`;
-
-const ScoreTitle = styled.h2`
-  font-family: "Roboto", sans-serif;
-  color: white;
-  font-size: 2rem;
-  margin: 0;
-`;
-
-const ScoreValue = styled.div`
-  font-family: "Roboto", sans-serif;
-  font-size: 3rem;
-  font-weight: bold;
-  color: ${(props) => {
-    const percentage = props.percentage || 0;
-    if (percentage >= 80) return "#2ecc71";
-    if (percentage >= 50) return "#f39c12";
-    if (percentage >= 20) return "#e74c3c";
-    return "#95a5a6";
-  }};
-`;
-
-const ScoreLabel = styled.p`
-  font-family: "Roboto", sans-serif;
-  color: #95a5a6;
-  font-size: 1rem;
-  margin: 0;
-`;
-
-const ResultsTitle = styled(CardTitle)`
-  font-size: 1.75rem;
-  margin-bottom: 1.5rem;
-`;
-
-const MoviesGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-`;
-
-const MovieResult = styled(Card)`
-  padding: 1rem;
-  position: relative;
-`;
-
-const CorrectBadge = styled.div`
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  background: #2ecc71;
-  color: white;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  font-weight: bold;
-`;
-
-const IncorrectBadge = styled(CorrectBadge)`
-  background: #e74c3c;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-`;
+// Helper function for score color
+const getScoreColor = (percentage) => {
+  if (percentage >= 80) return "#2ecc71";
+  if (percentage >= 50) return "#f39c12";
+  if (percentage >= 20) return "#e74c3c";
+  return "#95a5a6";
+};
 
 /**
  * Results Component
@@ -115,7 +31,7 @@ const ButtonGroup = styled.div`
  */
 export default function Results() {
   const { sessionId } = useParams();
-  const history = useHistory();
+  const navigate = useNavigate();
   const [session, setSession] = useState(null);
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -162,13 +78,13 @@ export default function Results() {
   };
 
   const handlePlayAgain = () => {
-    history.push("/");
+    navigate("/");
   };
 
   const handleNewGame = async () => {
     try {
       const { data } = await createSession();
-      history.push(`/play/${data.sessionId}`);
+      navigate(`/play/${data.sessionId}`);
     } catch (err) {
       setError(err.message || "Failed to start new game.");
     }
@@ -183,7 +99,7 @@ export default function Results() {
       <Error
         message={error}
         onRetry={() => window.location.reload()}
-        onBack={() => history.push("/")}
+        onBack={() => navigate("/")}
         fullPage
       />
     );
@@ -196,46 +112,64 @@ export default function Results() {
   const rating = getRating();
 
   return (
-    <ResultsContainer>
-      <ResultsHeader>
-        <ScoreSummary>
-          <ScoreTitle>
+    <div className="mx-auto p-4" style={{ maxWidth: "800px", display: "flex", flexDirection: "column", gap: "2rem" }}>
+      <Card className="p-4 text-center">
+        <div className="d-flex flex-column gap-3 align-items-center">
+          <h2 style={{ fontFamily: "'Roboto', sans-serif", color: "white", fontSize: "2rem", margin: "0" }}>
             {rating.emoji} {rating.text}
-          </ScoreTitle>
-          <ScoreValue percentage={scorePercentage}>{score}</ScoreValue>
-          <ScoreLabel>
+          </h2>
+          <div style={{ fontFamily: "'Roboto', sans-serif", fontSize: "3rem", fontWeight: "bold", color: getScoreColor(scorePercentage) }}>
+            {score}
+          </div>
+          <p style={{ fontFamily: "'Roboto', sans-serif", color: "#95a5a6", fontSize: "1rem", margin: "0" }}>
             out of {totalPossible} points ({scorePercentage}%)
-          </ScoreLabel>
-        </ScoreSummary>
-      </ResultsHeader>
+          </p>
+        </div>
+      </Card>
 
       <Card>
-        <ResultsTitle>Your Results</ResultsTitle>
-        <MoviesGrid>
+        <CardTitle className="text-center" style={{ fontSize: "1.75rem", marginBottom: "1.5rem" }}>
+          Your Results
+        </CardTitle>
+        <div className="d-grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
           {challenge.movies.map((movie) => {
             const wasCorrect = session.correctGuesses?.includes(movie.id);
             return (
-              <MovieResult key={movie.id}>
-                {wasCorrect ? (
-                  <CorrectBadge>✓</CorrectBadge>
-                ) : (
-                  <IncorrectBadge>✗</IncorrectBadge>
-                )}
+              <div key={movie.id} style={{ position: "relative" }}>
+                <div 
+                  style={{
+                    position: "absolute",
+                    top: "-10px",
+                    right: "-10px",
+                    background: wasCorrect ? "#2ecc71" : "#e74c3c",
+                    color: "white",
+                    width: "30px",
+                    height: "30px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.875rem",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {wasCorrect ? "✓" : "✗"}
+                </div>
                 <MovieCard movie={movie} showDescription={false} />
-              </MovieResult>
+              </div>
             );
           })}
-        </MoviesGrid>
+        </div>
 
-        <ButtonGroup style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px solid #333" }}>
-          <AppButton onClick={handleNewGame} color="primary" variant="contained">
+        <div className="d-flex gap-3 justify-content-center mt-4 pt-3" style={{ borderTop: "1px solid #333" }}>
+          <AppButton onClick={handleNewGame} variant="primary">
             Play New Game
           </AppButton>
-          <AppButton onClick={handlePlayAgain} color="secondary" variant="outlined">
+          <AppButton onClick={handlePlayAgain} variant="outline-secondary">
             Back to Home
           </AppButton>
-        </ButtonGroup>
+        </div>
       </Card>
-    </ResultsContainer>
+    </div>
   );
 }

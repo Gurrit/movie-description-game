@@ -14,6 +14,7 @@ class SessionService(
 ) {
 
     fun createSession(): SessionEntity {
+        println("GOT HERE")
         val challenge = challengeService.getOrCreateToday()
         val sessionId = UUID.randomUUID().toString()
         return sessionRepository.createSession(

@@ -19,7 +19,7 @@ import java.time.LocalDate
 
 @Tag(name = "Challenge", description = "Daily movie challenge operations")
 @RestController
-@RequestMapping("/api/challenge")
+@RequestMapping("/challenge")
 class ChallengeController(
     private val challengeService: ChallengeService,
     private val challengeMapper: ChallengeMapper
