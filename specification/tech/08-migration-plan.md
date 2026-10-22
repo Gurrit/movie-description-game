@@ -80,6 +80,12 @@ Rewrite instead of porting: the old components assume scoring/sessions/5 movies.
 5. Vitest + Testing Library + MSW tests for the pieces listed in `06-testing.md`.
 **Done when:** a full game is playable against the local backend in compose.
 
+**Status: done** (28 tests, lint and production build green; UI redesigned to the clean, mobile-first look in `05-frontend.md` and checked in headless Chromium at 360/390/1280px).
+- The CRA app was removed (`react-scripts`, yarn, Bootstrap, nginx config, old Dockerfiles, generated axios client) and rebuilt from scratch; nothing was ported. The old `frontend` service is gone from `docker-compose.yml` until phase 5 adds the new one.
+- Built: token bootstrap with 401 recovery, start screen, round view with player-chosen clue reveals, accessible autocomplete, round results, summary with next-game countdown, stats page. See `05-frontend.md` for the structure and the decisions.
+- Tests run against an in-memory fake of the API (`src/test/fakeBackend.ts`) via MSW, covering a full game through the UI, resuming after a reload, error states, the API client and the autocomplete. MSW 3 renamed the option to fail on unmatched requests to `onUnhandledFrame`; the old name is silently ignored.
+- Pinned TypeScript to 5.9.x (see `05-frontend.md`). The frontend has **not yet been run against the real backend in a browser**; that is covered by the phase 5 Playwright e2e on docker-compose. The fake backend is hand-written and typed from the same generated schema, but it is not contract-validated like the backend responses are.
+
 ## Phase 5: Containers, compose and e2e
 1. Backend Dockerfile: multi-stage Gradle → JRE 21, non-root, JVM flags per `07-deployment.md`.
 2. Frontend: dev uses Vite in compose (or on host); `app/Dockerfile` builds `dist/` into a Caddy-based web image (replaces `prod.Dockerfile`, `nginx.conf`, `Dockerfile.dev`).

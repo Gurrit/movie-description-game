@@ -1,16 +1,4 @@
 services:
-  frontend:
-    build:
-      context: app
-      dockerfile: Dockerfile.dev
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
-    volumes:
-      - "./app/src:/usr/src/app/src"
-      - "./app/public:/usr/src/app/public"
   postgres:
     image: postgres:17-alpine
     ports:
