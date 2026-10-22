@@ -4,7 +4,7 @@
 - A scheduled job runs at **00:00 UTC** daily and creates the daily set for that date.
 - **Lazy fallback**: if a request arrives and today's set does not exist (job missed, fresh deploy), it is generated on demand. Generation is idempotent and guarded by a unique index on `date`, so concurrent attempts yield one set.
 - The job also may pre-generate tomorrow's set (optional, `generation.preGenerateDays`, default 0).
-- Daily sets are **never deleted**. The database keeps all history; only today's set is playable.
+- Games are **never deleted**. The database keeps all history; only today's game is playable.
 
 ## Selecting movies from TMDB
 Goal: well-known, mainstream movies with complete data, with enough variety that the same films don't dominate.
@@ -23,12 +23,12 @@ Use `GET /discover/movie` with:
 | `page` | random in `[1, poolPages]` | Variety |
 
 - `vote_count.gte` alone defines the pool; no `vote_average` filter (a famous bad movie is fine).
-- `poolPages` = `min(tmdb.maxPoolPages, total_pages)` (TMDB caps `page` at 500; 20 results per page). Default `maxPoolPages` = 25 (≈ 500 candidates), is configurable.
+- `poolPages` = `min(tmdb.maxPoolPages, total_pages)` (TMDB caps `page` at 500; 20 results per page). Default `maxPoolPages` = 100 (≈ 2000 candidates), is configurable. The pool must comfortably exceed `noRepeatDays × roundsPerGame` (default 180 × 7 = 1260), otherwise the generator runs out of fresh candidates; increase `maxPoolPages` or lower `noRepeatDays` if generation fails with exhausted candidates.
 - Sorting by `vote_count.desc` and sampling from the first N pages means the pool is "the N most-voted eligible films", which is a proxy for recognizability. If the pool is too small, lower `minVoteCount`. If too obscure, lower `maxPoolPages`.
 
 ### Per-candidate validation
 1. Pick a random result from a random page.
-2. Reject if it was used in any previous daily set (`movies` already in the `dailySets` collection) or is already in today's set.
+2. Reject if the movie appeared in a game within the last `generation.noRepeatDays` days (default 180), or is already in today's game. Older appearances are allowed: a movie may return after the window.
 3. Fetch `/movie/{id}?append_to_response=credits` (single call).
 4. Reject if required data is missing ([02-clues.md](02-clues.md#required-data)) or redaction ratio check fails.
 5. Build the clues and store the movie snapshot (id, title, original title, year, poster path, clues).

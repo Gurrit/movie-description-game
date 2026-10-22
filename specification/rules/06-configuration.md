@@ -13,18 +13,19 @@ tmdb:
   minRuntime: 60
   excludedGenres: [99]    # Documentary
   originalLanguage: null  # e.g. "en"
-  maxPoolPages: 25
+  maxPoolPages: 100
   includeAdult: false
 
 generation:
   cron: "0 0 0 * * *"     # UTC
   maxAttempts: 100
   preGenerateDays: 0
+  noRepeatDays: 180       # a movie can't reappear within this many days
 
 redaction:
   maxMaskedRatio: 0.35
   mask: "▇▇▇"
 ```
 
-- Changing `roundsPerGame`/`attemptsPerRound` applies to games started afterwards. A game stores the values it was started with, so reloading an in-progress game never changes its rules.
+- Changing `roundsPerGame`/`attemptsPerRound` applies to games generated afterwards. A game stores the values it was generated with, so an existing game never changes its rules.
 - The frontend reads these values from the API and never hardcodes them.

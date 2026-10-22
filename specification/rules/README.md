@@ -14,9 +14,9 @@ A daily game where players identify movies from clues.
 
 ## Glossary
 
-- **Daily set**: the ordered list of 7 distinct movies generated once per UTC day, identical for all players.
-- **Game**: one player's playthrough of one daily set. One game per player per day.
-- **Round**: one movie within a game. A game has 7 rounds, played sequentially.
+- **Game**: the game for a UTC day, shared by all players: an ordered list of 7 distinct movies plus the rules it was generated with (rounds, attempts per round). Generated once per day.
+- **Playthrough**: one player's run through a game, with their guesses and revealed clues. One playthrough per player per game.
+- **Round**: one movie within a game, as played in a playthrough. A game has 7 rounds, played sequentially.
 - **Attempt**: one guess at the movie in the current round. A round allows 3 attempts, which do not carry over between rounds.
 - **Clue**: a piece of information about the round's movie, revealed on request.
 - **Player**: an anonymous identity represented by a backend-issued opaque token.

@@ -1,68 +1,87 @@
-CREATE TABLE players (
+CREATE TABLE player (
   id           uuid PRIMARY KEY,
   token_hash   bytea NOT NULL UNIQUE,
   created_at   timestamptz NOT NULL,
   last_seen_at timestamptz NOT NULL
 );
 
-CREATE TABLE daily_sets (
-  date        date PRIMARY KEY,
-  created_at  timestamptz NOT NULL
-);
-
-CREATE TABLE daily_set_movies (
-  date           date NOT NULL REFERENCES daily_sets(date),
-  position       smallint NOT NULL,
-  tmdb_id        integer NOT NULL,
+CREATE TABLE movie (
+  id             integer PRIMARY KEY,
   title          text NOT NULL,
   original_title text NOT NULL,
   release_year   smallint NOT NULL,
   poster_path    text,
-  clues          jsonb NOT NULL,
-  PRIMARY KEY (date, position),
-  UNIQUE (tmdb_id)
+  clues          jsonb NOT NULL
 );
 
-CREATE TABLE games (
+-- A game: a fixed list of movies plus the rules it was generated with. Shared by all players.
+CREATE TABLE game (
   id                 uuid PRIMARY KEY,
-  player_id          uuid NOT NULL REFERENCES players(id),
-  date               date NOT NULL REFERENCES daily_sets(date),
-  status             text NOT NULL CHECK (status IN ('IN_PROGRESS', 'COMPLETE')),
   rounds_per_game    smallint NOT NULL,
   attempts_per_round smallint NOT NULL,
-  current_round      smallint NOT NULL,
-  started_at         timestamptz NOT NULL,
-  completed_at       timestamptz,
-  UNIQUE (player_id, date)
+  created_at         timestamptz NOT NULL
 );
 
-CREATE TABLE game_rounds (
-  game_id  uuid NOT NULL REFERENCES games(id),
+-- Which game is played on which UTC day. "One game per date" is enforced by the
+-- generator (under an advisory lock), deliberately not by a constraint.
+CREATE TABLE daily_game (
+  game_id uuid PRIMARY KEY REFERENCES game (id),
+  date    date NOT NULL
+);
+
+CREATE INDEX daily_game_date_idx ON daily_game (date);
+
+CREATE TABLE game_movie (
+  game_id  uuid NOT NULL REFERENCES game (id),
   position smallint NOT NULL,
-  status   text NOT NULL CHECK (status IN ('PENDING', 'ACTIVE', 'SOLVED', 'FAILED')),
-  PRIMARY KEY (game_id, position)
+  movie_id integer NOT NULL REFERENCES movie (id),
+  PRIMARY KEY (game_id, position),
+  UNIQUE (game_id, movie_id)
 );
 
-CREATE TABLE guesses (
-  game_id    uuid NOT NULL,
-  position   smallint NOT NULL,
-  attempt_no smallint NOT NULL,
-  tmdb_id    integer NOT NULL,
-  correct    boolean NOT NULL,
-  created_at timestamptz NOT NULL,
-  PRIMARY KEY (game_id, position, attempt_no),
-  UNIQUE (game_id, position, tmdb_id),
-  FOREIGN KEY (game_id, position) REFERENCES game_rounds (game_id, position)
+CREATE INDEX game_movie_movie_idx ON game_movie (movie_id);
+
+-- One player's run through a game.
+CREATE TABLE playthrough (
+  id            uuid PRIMARY KEY,
+  player_id     uuid NOT NULL REFERENCES player (id),
+  game_id       uuid NOT NULL REFERENCES game (id),
+  status        text NOT NULL CHECK (status IN ('IN_PROGRESS', 'COMPLETE')),
+  current_round smallint NOT NULL,
+  started_at    timestamptz NOT NULL,
+  completed_at  timestamptz,
+  UNIQUE (player_id, game_id)
 );
 
-CREATE TABLE revealed_clues (
-  game_id                 uuid NOT NULL,
+CREATE TABLE playthrough_round (
+  playthrough_id uuid NOT NULL REFERENCES playthrough (id),
+  position       smallint NOT NULL,
+  status         text NOT NULL CHECK (status IN ('PENDING', 'ACTIVE', 'SOLVED', 'FAILED')),
+  PRIMARY KEY (playthrough_id, position)
+);
+
+CREATE TABLE guess (
+  playthrough_id uuid NOT NULL,
+  position       smallint NOT NULL,
+  attempt_no     smallint NOT NULL,
+  tmdb_id        integer NOT NULL,
+  title          text NOT NULL,
+  release_year   smallint,
+  correct        boolean NOT NULL,
+  created_at     timestamptz NOT NULL,
+  PRIMARY KEY (playthrough_id, position, attempt_no),
+  UNIQUE (playthrough_id, position, tmdb_id),
+  FOREIGN KEY (playthrough_id, position) REFERENCES playthrough_round (playthrough_id, position)
+);
+
+CREATE TABLE revealed_clue (
+  playthrough_id          uuid NOT NULL,
   position                smallint NOT NULL,
   clue_id                 text NOT NULL,
   revealed_at             timestamptz NOT NULL,
   attempts_used_at_reveal smallint NOT NULL,
-  PRIMARY KEY (game_id, position, clue_id),
-  FOREIGN KEY (game_id, position) REFERENCES game_rounds (game_id, position)
+  PRIMARY KEY (playthrough_id, position, clue_id),
+  FOREIGN KEY (playthrough_id, position) REFERENCES playthrough_round (playthrough_id, position)
 );
 
-CREATE INDEX games_player_idx ON games (player_id);
+CREATE INDEX playthrough_player_idx ON playthrough (player_id);

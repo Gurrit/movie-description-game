@@ -2,7 +2,7 @@
 
 ## Structure
 - A **daily set** contains `roundsPerGame` movies (default **7**), all distinct.
-- A **game** = a player's playthrough of today's set. Each player may play **one game per UTC day**. There is no restart, and no way to play past days.
+- The **game** for a day is the same for every player. A player's run through it is their **playthrough**. Each player may play **one playthrough per UTC day**. There is no restart, and no way to play past days.
 - Rounds are **sequential**: the player must finish round N (solved or failed) before round N+1 is visible. No skipping, no returning to earlier rounds for further play.
 
 ## Round
@@ -23,4 +23,4 @@
 ## Integrity rules
 - Server-authoritative: the answer and unrevealed clue content never leave the server before they are earned (revealed clue or round ended).
 - Clients cannot start a game for a day other than the current UTC day.
-- A player can have at most one game per UTC day (enforced by a unique index on player and day).
+- A player can have at most one playthrough per game, hence per UTC day (enforced by a unique constraint on player and game).

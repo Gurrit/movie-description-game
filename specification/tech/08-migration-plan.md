@@ -53,7 +53,7 @@ The working tree has uncommitted work in progress (a partial refactor of the bac
 ## Phase 3: Backend domain (in this order)
 1. **tmdb/**: keep the existing clients; reshape to the three needed calls (discover, details+credits, search); add timeouts/retries; configurable base URL; WireMock tests with fixtures (≥ 7 movies).
 2. **clue/**: sealed `Clue` model, `ClueBuilder` (from details + credits), `Redactor` (pure, unit-tested thoroughly).
-3. **challenge/**: `MovieSelector` (seeded `Random`), `DailySetService.ensure(date)` with advisory lock + never-repeat constraint, `@Scheduled` job, `POST /internal/generate` with token check.
+3. **challenge/**: `MovieSelector` (seeded `Random`), `GameGenerator.ensure(date)` with advisory lock + no-repeat window (`generation.noRepeatDays`), `@Scheduled` job, `POST /internal/generate` with token check.
 4. **player/**: `POST /players`, token hashing, bearer `WebFilter`.
 5. **game/**: start, get, reveal (`RevealPolicy` seam), guess (single transaction), round advance, completion; `GameViewMapper` as the sole exposure point for clue content/answers.
 6. **tmdb search endpoint** `GET /movies/search` with rate limiting + cache.

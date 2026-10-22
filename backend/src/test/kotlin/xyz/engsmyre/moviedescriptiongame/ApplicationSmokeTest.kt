@@ -22,9 +22,9 @@ class ApplicationSmokeTest(
     fun `migrations create the schema`() = runTest {
         val tables = db.sql(
             "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN " +
-                "('players','daily_sets','daily_set_movies','games','game_rounds','guesses','revealed_clues')"
+                "('player','movie','game','daily_game','game_movie','playthrough','playthrough_round','guess','revealed_clue')"
         ).map { row -> row.get(0, java.lang.Long::class.java)!!.toLong() }.one().awaitSingle()
-        assertEquals(7L, tables)
+        assertEquals(9L, tables)
     }
 
     @Test

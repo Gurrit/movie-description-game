@@ -10,7 +10,7 @@ data class TmdbProperties(
     val minRuntime: Int = 60,
     val excludedGenres: List<Int> = listOf(99),
     val originalLanguage: String? = null,
-    val maxPoolPages: Int = 25,
+    val maxPoolPages: Int = 100,
     val includeAdult: Boolean = false,
 ) {
     init {

@@ -5,8 +5,8 @@ Kotlin, Spring Boot 4.x, `spring-boot-starter-webflux`, `spring-boot-starter-dat
 
 ## Packages (feature-based, root `xyz.engsmyre.moviedescriptiongame`)
 ```
-game/        GameController, GameService, GameRepository, domain (Game, Round, RevealPolicy)
-challenge/   DailySetService, DailySetRepository, GenerationController (internal), MovieSelector
+game/        GameController, PlaythroughService, PlaythroughRepository, domain (Playthrough, Round, RevealPolicy)
+challenge/   GameGenerator, GameRepository, GenerationController (internal), MovieSelector
 clue/        Clue model (sealed), ClueBuilder, Redactor
 player/      PlayerController, PlayerService, TokenService, auth filter
 stats/       StatsController, StatsService
@@ -28,14 +28,14 @@ Rules: controllers implement generated OpenAPI interfaces and only map DTOs ⇄ 
 - Plain Spring Security is not required; add it only if more auth needs appear.
 
 ## Game flow implementation
-- `GameService.startToday(player)`: ensures the daily set exists (lazy generation), then inserts the game and its `rounds_per_game` round rows, with round 0 `ACTIVE`; relies on `UNIQUE(player_id, date)` for idempotence (on conflict, return the existing game).
-- `guess(player, tmdbId)`: single transaction → lock the active round → validate → insert guess → compute correctness against the set's movie id → update round/game status → advance `current_round` and activate the next round when ended → build the response.
+- `PlaythroughService.startToday(player)`: ensures today's game exists (via `daily_game`) (lazy generation), then inserts the `playthrough` and one `playthrough_round` row per movie in the game, with round 0 `ACTIVE`; relies on `UNIQUE(player_id, date)` for idempotence (on conflict, return the existing game).
+- `guess(player, tmdbId)`: look up the guessed movie on TMDB (validates the id, gives title/year) → single transaction → lock the active round → validate → insert guess → compute correctness against the set's movie id → update round/game status → advance `current_round` and activate the next round when ended → build the response.
 - `reveal(player, clueId)`: validates the clue exists for the active round; `INSERT … ON CONFLICT DO NOTHING`; returns the clue content.
 - **Reveal policy** is an interface (`RevealPolicy`) with the default `FreeRevealPolicy`; it is called by `reveal` and `guess` and can reject or auto-reveal. Keep this seam.
 - Client view mapping happens in one place (`GameViewMapper`), which is the only code allowed to expose clue content or answers, applying the redaction-of-unearned rules from the functional spec.
 
 ## Challenge generation
-- `DailySetService.ensure(date)`: if the set exists, return it; otherwise generate and insert in one transaction. A concurrent generator hitting the primary key / unique constraint rolls back and re-reads. Use a Postgres advisory lock (`pg_advisory_xact_lock(hash(date))`) around generation to avoid wasted TMDB calls across instances.
+- `GameGenerator.ensure(date)`: under the date's advisory lock, if a `daily_game` row exists for the date return its game; otherwise generate, upsert the `movie` rows and insert the `game`, `game_movie` and `daily_game` rows in one transaction (so a partial set is never visible). A concurrent generator hitting the primary key / unique constraint rolls back and re-reads. Use a Postgres advisory lock (`pg_advisory_xact_lock(hash(date))`) around generation to avoid wasted TMDB calls across instances.
 - `MovieSelector` implements the discover → validate → build-clues pipeline from `../rules/03-challenge-generation.md` using an injectable `Random` (seedable for tests).
 - `Redactor` is a pure function (title/people → text → masked text + ratio); heavily unit-tested.
 

@@ -5,81 +5,190 @@
 - The database is never purged. Data for each day is retained for ever.
 - Primary keys: UUID (generated app-side, UUIDv4/v7) except where a natural key exists.
 
+## Diagram
+
+```mermaid
+erDiagram
+    player ||--o{ playthrough : "plays"
+    game ||--o{ playthrough : "is played in"
+    game ||--o| daily_game : "scheduled on"
+    game ||--|{ game_movie : "has (7)"
+    movie ||--o{ game_movie : "used in"
+    playthrough ||--|{ playthrough_round : "has"
+    playthrough_round ||--o{ guess : "attempts"
+    playthrough_round ||--o{ revealed_clue : "reveals"
+
+    player {
+        uuid id PK
+        bytea token_hash UK "SHA-256 of opaque token"
+        timestamptz created_at
+        timestamptz last_seen_at
+    }
+    movie {
+        integer id PK "TMDB id"
+        text title
+        text original_title
+        smallint release_year
+        text poster_path
+        jsonb clues "ordered Clue array"
+    }
+    game {
+        uuid id PK
+        smallint rounds_per_game "config snapshot"
+        smallint attempts_per_round "config snapshot"
+        timestamptz created_at
+    }
+    daily_game {
+        uuid game_id PK,FK
+        date date "UTC day, indexed, uniqueness in code"
+    }
+    game_movie {
+        uuid game_id PK,FK
+        smallint position PK "0-based round index"
+        integer movie_id FK "UK with game_id"
+    }
+    playthrough {
+        uuid id PK
+        uuid player_id FK "UK with game_id"
+        uuid game_id FK
+        text status "IN_PROGRESS | COMPLETE"
+        smallint current_round
+        timestamptz started_at
+        timestamptz completed_at
+    }
+    playthrough_round {
+        uuid playthrough_id PK,FK
+        smallint position PK
+        text status "PENDING | ACTIVE | SOLVED | FAILED"
+    }
+    guess {
+        uuid playthrough_id PK,FK
+        smallint position PK,FK
+        smallint attempt_no PK "1-based"
+        integer tmdb_id "UK per round"
+        text title
+        smallint release_year
+        boolean correct
+        timestamptz created_at
+    }
+    revealed_clue {
+        uuid playthrough_id PK,FK
+        smallint position PK,FK
+        text clue_id PK
+        timestamptz revealed_at
+        smallint attempts_used_at_reveal
+    }
+```
+
+The model has two halves:
+
+- **Shared, player-independent:** `movie`, `game`, `game_movie` and `daily_game`. A `game` is a fixed list of movies, identical for everyone, and carries the rules (rounds, attempts) it was generated with. `daily_game` says which UTC day a game is played on; it is the only table with the date. `movie` holds everything about a film, including its clues, and has no date.
+- **Per player:** `playthrough` and its children. A playthrough is one player's run through a game. A round's movie is not stored on the playthrough: it is `game_movie` at the same `position` in the playthrough's game.
+
+Naming in the API: the `Game` object in the OpenAPI contract is the *player's view* (the shared game plus that player's playthrough), not a table.
+
 ## Schema (initial)
+The authoritative DDL is `backend/src/main/resources/db/migration/V1__init.sql`; this is a copy.
+
 ```sql
-CREATE TABLE players (
+CREATE TABLE player (
   id           uuid PRIMARY KEY,
-  token_hash   bytea NOT NULL UNIQUE,          -- SHA-256 of the opaque token
+  token_hash   bytea NOT NULL UNIQUE,
   created_at   timestamptz NOT NULL,
   last_seen_at timestamptz NOT NULL
 );
 
-CREATE TABLE daily_sets (
-  date        date PRIMARY KEY,                 -- UTC day
-  created_at  timestamptz NOT NULL
-);
-
-CREATE TABLE daily_set_movies (
-  date          date NOT NULL REFERENCES daily_sets(date),
-  position      smallint NOT NULL,              -- 0-based round index
-  tmdb_id       integer NOT NULL,
-  title         text NOT NULL,
+CREATE TABLE movie (
+  id             integer PRIMARY KEY,
+  title          text NOT NULL,
   original_title text NOT NULL,
-  release_year  smallint NOT NULL,
-  poster_path   text,
-  clues         jsonb NOT NULL,                 -- ordered array of Clue (see ../rules/02-clues.md)
-  PRIMARY KEY (date, position),
-  UNIQUE (tmdb_id)                              -- a movie is never reused in any set
+  release_year   smallint NOT NULL,
+  poster_path    text,
+  clues          jsonb NOT NULL
 );
 
-CREATE TABLE games (
-  id                uuid PRIMARY KEY,
-  player_id         uuid NOT NULL REFERENCES players(id),
-  date              date NOT NULL REFERENCES daily_sets(date),
-  status            text NOT NULL CHECK (status IN ('IN_PROGRESS','COMPLETE')),
-  rounds_per_game   smallint NOT NULL,          -- config snapshot
-  attempts_per_round smallint NOT NULL,         -- config snapshot
-  current_round     smallint NOT NULL,
-  started_at        timestamptz NOT NULL,
-  completed_at      timestamptz,
-  UNIQUE (player_id, date)
+-- A game: a fixed list of movies plus the rules it was generated with. Shared by all players.
+CREATE TABLE game (
+  id                 uuid PRIMARY KEY,
+  rounds_per_game    smallint NOT NULL,
+  attempts_per_round smallint NOT NULL,
+  created_at         timestamptz NOT NULL
 );
 
-CREATE TABLE game_rounds (
-  game_id    uuid NOT NULL REFERENCES games(id),
-  position   smallint NOT NULL,
-  status     text NOT NULL CHECK (status IN ('PENDING','ACTIVE','SOLVED','FAILED')),
-  PRIMARY KEY (game_id, position)
+-- Which game is played on which UTC day. "One game per date" is enforced by the
+-- generator (under an advisory lock), deliberately not by a constraint.
+CREATE TABLE daily_game (
+  game_id uuid PRIMARY KEY REFERENCES game (id),
+  date    date NOT NULL
 );
 
-CREATE TABLE guesses (
-  game_id    uuid NOT NULL,
-  position   smallint NOT NULL,
-  attempt_no smallint NOT NULL,                 -- 1-based
-  tmdb_id    integer NOT NULL,
-  correct    boolean NOT NULL,
-  created_at timestamptz NOT NULL,
-  PRIMARY KEY (game_id, position, attempt_no),
-  UNIQUE (game_id, position, tmdb_id),          -- no duplicate guess within a round
-  FOREIGN KEY (game_id, position) REFERENCES game_rounds
+CREATE INDEX daily_game_date_idx ON daily_game (date);
+
+CREATE TABLE game_movie (
+  game_id  uuid NOT NULL REFERENCES game (id),
+  position smallint NOT NULL,
+  movie_id integer NOT NULL REFERENCES movie (id),
+  PRIMARY KEY (game_id, position),
+  UNIQUE (game_id, movie_id)
 );
 
-CREATE TABLE revealed_clues (
-  game_id    uuid NOT NULL,
-  position   smallint NOT NULL,
-  clue_id    text NOT NULL,
-  revealed_at timestamptz NOT NULL,
+CREATE INDEX game_movie_movie_idx ON game_movie (movie_id);
+
+-- One player's run through a game.
+CREATE TABLE playthrough (
+  id            uuid PRIMARY KEY,
+  player_id     uuid NOT NULL REFERENCES player (id),
+  game_id       uuid NOT NULL REFERENCES game (id),
+  status        text NOT NULL CHECK (status IN ('IN_PROGRESS', 'COMPLETE')),
+  current_round smallint NOT NULL,
+  started_at    timestamptz NOT NULL,
+  completed_at  timestamptz,
+  UNIQUE (player_id, game_id)
+);
+
+CREATE TABLE playthrough_round (
+  playthrough_id uuid NOT NULL REFERENCES playthrough (id),
+  position       smallint NOT NULL,
+  status         text NOT NULL CHECK (status IN ('PENDING', 'ACTIVE', 'SOLVED', 'FAILED')),
+  PRIMARY KEY (playthrough_id, position)
+);
+
+CREATE TABLE guess (
+  playthrough_id uuid NOT NULL,
+  position       smallint NOT NULL,
+  attempt_no     smallint NOT NULL,
+  tmdb_id        integer NOT NULL,
+  title          text NOT NULL,
+  release_year   smallint,
+  correct        boolean NOT NULL,
+  created_at     timestamptz NOT NULL,
+  PRIMARY KEY (playthrough_id, position, attempt_no),
+  UNIQUE (playthrough_id, position, tmdb_id),
+  FOREIGN KEY (playthrough_id, position) REFERENCES playthrough_round (playthrough_id, position)
+);
+
+CREATE TABLE revealed_clue (
+  playthrough_id          uuid NOT NULL,
+  position                smallint NOT NULL,
+  clue_id                 text NOT NULL,
+  revealed_at             timestamptz NOT NULL,
   attempts_used_at_reveal smallint NOT NULL,
-  PRIMARY KEY (game_id, position, clue_id),
-  FOREIGN KEY (game_id, position) REFERENCES game_rounds
+  PRIMARY KEY (playthrough_id, position, clue_id),
+  FOREIGN KEY (playthrough_id, position) REFERENCES playthrough_round (playthrough_id, position)
 );
+
+CREATE INDEX playthrough_player_idx ON playthrough (player_id);
 ```
+
 Notes:
-- `UNIQUE (tmdb_id)` on `daily_set_movies` enforces the "never repeat" rule; generation retries on conflict.
-- `guesses` primary key `(game_id, position, attempt_no)` makes concurrent double submits fail on insert instead of consuming two attempts; the service maps the unique-violation to `409`.
-- Stats are an aggregate query over `games`/`game_rounds` (indexed by `player_id`). Counters are not stored initially.
+- `UNIQUE (game_id, movie_id)` stops a movie appearing twice in one game. Reuse across days is allowed by the schema; the **no-repeat window** (`generation.noRepeatDays`, default 180) is enforced by the generator: it excludes movies in a `game_movie` row whose game's `daily_game.date` is within the window (query served by `game_movie_movie_idx`). Generation holds the advisory lock, so two instances can't pick conflicting sets.
+- **One game per date is enforced in code, not by a constraint.** `daily_game.date` only has a plain index. The generator takes a Postgres advisory lock keyed on the date, re-checks for an existing `daily_game` row under the lock, and writes all `movie`, `game`, `game_movie` and `daily_game` rows in one transaction, so a partial game is never visible. Readers resolve a date with `SELECT game_id FROM daily_game WHERE date = $1 ORDER BY game_id LIMIT 1`; the explicit ordering means that even a bug-induced duplicate row could not give different players different games.
+- `game.rounds_per_game` / `attempts_per_round` are snapshots taken at generation, so config changes never alter an existing game and everyone playing a day's game gets identical rules.
+- `UNIQUE (player_id, game_id)` allows one playthrough per player per game, hence per day.
+- `guess` primary key `(playthrough_id, position, attempt_no)` makes concurrent double submits fail on insert instead of consuming two attempts; the service maps the unique-violation to `409`. `title`/`release_year` come from the TMDB lookup done when the guess is submitted.
+- Stats are an aggregate query over `playthrough`/`playthrough_round` (indexed by `player_id`). Counters are not stored initially.
 - `clues` JSONB shape: `[{"id":"plot","type":"PLOT","order":1,"content":{...}}, ...]`; content shapes are documented per type in `../rules/02-clues.md`. The reader tolerates unknown fields. Content is deserialized with Jackson into a sealed Kotlin hierarchy.
-- Round-ending, guess insert and game update happen in **one transaction** (`TransactionalOperator`); the round row is locked (`SELECT … FOR UPDATE`) while evaluating a guess.
+- Guess evaluation, round advance and playthrough update happen in **one transaction** (`TransactionalOperator`); the `playthrough_round` row is locked (`SELECT … FOR UPDATE`) while evaluating a guess.
 
 ## Local and test
 - Local: Postgres container in compose with a named volume.

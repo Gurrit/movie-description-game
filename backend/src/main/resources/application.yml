@@ -41,13 +41,14 @@ tmdb:
   min-vote-count: 5000
   min-runtime: 60
   excluded-genres: [99]
-  max-pool-pages: 25
+  max-pool-pages: 100
   include-adult: false
 
 generation:
   cron: "0 0 0 * * *"
   max-attempts: 100
   pre-generate-days: 0
+  no-repeat-days: 180
   internal-token: ${INTERNAL_TOKEN:}
 
 redaction:
