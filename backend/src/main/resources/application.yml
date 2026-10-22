@@ -1,0 +1,59 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: movie-description-game
+  webflux:
+    base-path: /api
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/moviegame}
+    username: ${SPRING_R2DBC_USERNAME:moviegame}
+    password: ${SPRING_R2DBC_PASSWORD:moviegame}
+  flyway:
+    url: ${SPRING_FLYWAY_URL:jdbc:postgresql://localhost:5432/moviegame}
+    user: ${SPRING_FLYWAY_USER:moviegame}
+    password: ${SPRING_FLYWAY_PASSWORD:moviegame}
+
+management:
+  endpoints:
+    web:
+      base-path: /
+      exposure:
+        include: health
+      path-mapping:
+        health: healthz
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,r2dbc
+
+game:
+  rounds-per-game: 7
+  attempts-per-round: 3
+
+tmdb:
+  base-url: https://api.themoviedb.org/3
+  read-token: ${TMDB_READ_TOKEN:}
+  min-vote-count: 5000
+  min-runtime: 60
+  excluded-genres: [99]
+  max-pool-pages: 25
+  include-adult: false
+
+generation:
+  cron: "0 0 0 * * *"
+  max-attempts: 100
+  pre-generate-days: 0
+  internal-token: ${INTERNAL_TOKEN:}
+
+redaction:
+  max-masked-ratio: 0.35
+  mask: "▇▇▇"
+
+logging:
+  level:
+    root: info
