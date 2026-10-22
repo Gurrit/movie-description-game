@@ -31,6 +31,8 @@ The working tree has uncommitted work in progress (a partial refactor of the bac
 4. Add Spectral lint config and a CI step.
 **Done when:** the spec lints; both generators run (they may fail to compile against old code, which is expected).
 
+**Status: done.** `api/openapi.yaml` and `api/internal.yaml` written; Spectral config added; `backend/build.gradle.kts` points at `../api/openapi.yaml` with `useCoroutines=true` (generated interfaces are `suspend` functions returning `ResponseEntity<T>`); `app/package.json` `generate:api` path updated. Spike result: the kotlin-spring and openapi-typescript generators both handle the contract. Clue content is a single flat `ClueContent` object (optional `text`, `genres`, `runtimeMinutes`, `releaseYear`, `people`) rather than a `oneOf`, to keep generated code simple.
+
 ## Phase 2: Backend foundations
 1. Gradle: remove `spring-boot-starter-data-mongodb`; add `data-r2dbc`, `r2dbc-postgresql`, Flyway (`flyway-core`, `flyway-database-postgresql`, `postgresql` JDBC), Actuator, Jackson Kotlin module. Pin versions via the Spring Boot BOM instead of inline versions where possible.
 2. Switch the generator options to `useCoroutines=true` (keeps `reactive=true`, `interfaceOnly=true`).

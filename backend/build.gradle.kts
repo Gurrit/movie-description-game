@@ -52,7 +52,7 @@ val generatedApiDir = layout.buildDirectory.dir("generated/openapi")
 
 openApiGenerate {
     generatorName.set("kotlin-spring")
-    inputSpec.set("$projectDir/api/openapi.yaml")
+    inputSpec.set("${rootProject.projectDir}/../api/openapi.yaml")
     outputDir.set(generatedApiDir.map { it.asFile.path })
     apiPackage.set("xyz.engsmyre.moviedescriptiongame.api.generated")
     modelPackage.set("xyz.engsmyre.moviedescriptiongame.api.model")
@@ -63,6 +63,7 @@ openApiGenerate {
         mapOf(
             "interfaceOnly" to "true",
             "reactive" to "true",
+            "useCoroutines" to "true",
             "useSpringBoot3" to "true",
             "useTags" to "true",
             "skipDefaultInterface" to "true",

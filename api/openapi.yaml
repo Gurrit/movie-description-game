@@ -1,0 +1,434 @@
+openapi: 3.0.3
+info:
+  title: Movie Description Game API
+  description: |
+    A daily game: every UTC day there is one set of movies (default 7). A player plays the set
+    round by round, revealing clues and guessing the movie with a limited number of attempts per round.
+
+    The server is the single source of truth for game state. Every mutating game call returns the
+    updated `Game`. Clue content and answers are only included once earned.
+  version: 2.0.0
+
+servers:
+  - url: /api
+    description: Same-origin API (reverse proxy / dev proxy forwards /api to the backend)
+
+tags:
+  - name: Player
+    description: Anonymous players identified by an opaque token
+  - name: Game
+    description: Today's game
+  - name: Movie
+    description: Movie search for guess autocomplete
+
+security:
+  - bearerAuth: []
+
+paths:
+  /players:
+    post:
+      tags: [Player]
+      operationId: createPlayer
+      summary: Create an anonymous player
+      description: Returns the opaque token that identifies the player. The token is shown only once.
+      security: []
+      responses:
+        '201':
+          description: Player created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '429':
+          $ref: '#/components/responses/Problem'
+
+  /players/me/stats:
+    get:
+      tags: [Player]
+      operationId: getMyStats
+      summary: Personal statistics
+      responses:
+        '200':
+          description: Statistics for the calling player
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+        '401':
+          $ref: '#/components/responses/Problem'
+
+  /game/today:
+    get:
+      tags: [Game]
+      operationId: getTodaysGame
+      summary: Get the player's game for today (UTC)
+      responses:
+        '200':
+          description: The game
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          description: The player has not started today's game (code GAME_NOT_STARTED)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    post:
+      tags: [Game]
+      operationId: startTodaysGame
+      summary: Start today's game
+      description: |
+        Idempotent. Creates the game if it does not exist and returns it. May trigger generation of
+        today's set, so it can be slow on the first request of a day.
+      responses:
+        '200':
+          description: The already existing game
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '201':
+          description: The game was created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+
+  /game/today/rounds/current/clues/{clueId}/reveal:
+    post:
+      tags: [Game]
+      operationId: revealClue
+      summary: Reveal a clue in the active round
+      description: Idempotent. Revealing has no effect on attempts.
+      parameters:
+        - name: clueId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The updated game
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+
+  /game/today/rounds/current/guesses:
+    post:
+      tags: [Game]
+      operationId: submitGuess
+      summary: Guess the movie of the active round
+      description: |
+        Uses one attempt. When the round ends (correct guess, or attempts exhausted) the answer is
+        revealed in the round and the game moves on to the next round (or completes).
+        Errors: 409 ROUND_OVER / ALREADY_GUESSED / GAME_COMPLETE (no attempt consumed).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuessRequest'
+      responses:
+        '200':
+          description: The updated game
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+
+  /movies/search:
+    get:
+      tags: [Movie]
+      operationId: searchMovies
+      summary: Search movies by title (autocomplete)
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+      responses:
+        '200':
+          description: Up to 10 matches
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 10
+                items:
+                  $ref: '#/components/schemas/MovieSuggestion'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Opaque player token from POST /players
+
+  responses:
+    Problem:
+      description: Error (RFC 9457 problem details)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      required: [title, status, code]
+      properties:
+        type:
+          type: string
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        code:
+          type: string
+          description: |
+            Stable machine-readable code, e.g. GAME_NOT_STARTED, GAME_COMPLETE, ROUND_OVER,
+            ALREADY_GUESSED, CLUE_NOT_FOUND, INVALID_TOKEN, RATE_LIMITED, TMDB_UNAVAILABLE,
+            GENERATION_FAILED, VALIDATION_FAILED.
+
+    Player:
+      type: object
+      required: [playerId, token]
+      properties:
+        playerId:
+          type: string
+          format: uuid
+        token:
+          type: string
+
+    GuessRequest:
+      type: object
+      required: [tmdbId]
+      properties:
+        tmdbId:
+          type: integer
+          format: int32
+
+    MovieSuggestion:
+      type: object
+      required: [tmdbId, title]
+      properties:
+        tmdbId:
+          type: integer
+          format: int32
+        title:
+          type: string
+        year:
+          type: integer
+          format: int32
+          nullable: true
+
+    Stats:
+      type: object
+      required: [gamesPlayed, gamesFullySolved, moviesSolved]
+      properties:
+        gamesPlayed:
+          type: integer
+          format: int32
+          description: Completed games
+        gamesFullySolved:
+          type: integer
+          format: int32
+          description: Completed games where every round was solved
+        moviesSolved:
+          type: integer
+          format: int32
+
+    GameStatus:
+      type: string
+      enum: [IN_PROGRESS, COMPLETE]
+
+    RoundStatus:
+      type: string
+      enum: [PENDING, ACTIVE, SOLVED, FAILED]
+
+    Game:
+      type: object
+      required: [id, date, status, roundsPerGame, attemptsPerRound, rounds]
+      properties:
+        id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+          description: UTC day of the daily set
+        status:
+          $ref: '#/components/schemas/GameStatus'
+        roundsPerGame:
+          type: integer
+          format: int32
+        attemptsPerRound:
+          type: integer
+          format: int32
+        currentRound:
+          type: integer
+          format: int32
+          nullable: true
+          description: Index of the active round; null when the game is complete
+        rounds:
+          type: array
+          description: All rounds in order. Rounds with status PENDING carry no clues or guesses.
+          items:
+            $ref: '#/components/schemas/Round'
+
+    Round:
+      type: object
+      required: [index, status, attemptsUsed, guesses, clues]
+      properties:
+        index:
+          type: integer
+          format: int32
+        status:
+          $ref: '#/components/schemas/RoundStatus'
+        attemptsUsed:
+          type: integer
+          format: int32
+        guesses:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuessResult'
+        clues:
+          type: array
+          items:
+            $ref: '#/components/schemas/Clue'
+        answer:
+          allOf:
+            - $ref: '#/components/schemas/Answer'
+          nullable: true
+          description: Only present once the round has ended
+
+    GuessResult:
+      type: object
+      required: [tmdbId, title, correct]
+      properties:
+        tmdbId:
+          type: integer
+          format: int32
+        title:
+          type: string
+        year:
+          type: integer
+          format: int32
+          nullable: true
+        correct:
+          type: boolean
+
+    Answer:
+      type: object
+      required: [tmdbId, title, year]
+      properties:
+        tmdbId:
+          type: integer
+          format: int32
+        title:
+          type: string
+        year:
+          type: integer
+          format: int32
+        posterPath:
+          type: string
+          nullable: true
+          description: TMDB poster path; the client prepends the TMDB image base URL
+
+    ClueType:
+      type: string
+      description: Open set; clients must tolerate unknown values
+      enum: [PLOT, TAGLINE, METADATA, PEOPLE]
+
+    Clue:
+      type: object
+      required: [id, type, order, revealed]
+      properties:
+        id:
+          type: string
+          description: Stable within the round, e.g. "plot"
+        type:
+          $ref: '#/components/schemas/ClueType'
+        order:
+          type: integer
+          format: int32
+        revealed:
+          type: boolean
+        content:
+          allOf:
+            - $ref: '#/components/schemas/ClueContent'
+          nullable: true
+          description: Only present when revealed (or the round has ended)
+
+    ClueContent:
+      description: |
+        Type-specific payload. Which fields are set depends on the clue type:
+        PLOT/TAGLINE -> text; METADATA -> genres, runtimeMinutes, releaseYear; PEOPLE -> people.
+      type: object
+      properties:
+        text:
+          type: string
+        genres:
+          type: array
+          items:
+            type: string
+        runtimeMinutes:
+          type: integer
+          format: int32
+        releaseYear:
+          type: integer
+          format: int32
+        people:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonClue'
+
+    PersonClue:
+      type: object
+      required: [role, name]
+      properties:
+        role:
+          type: string
+          enum: [CAST, DIRECTOR, WRITER]
+        name:
+          type: string
+        character:
+          type: string
+          nullable: true

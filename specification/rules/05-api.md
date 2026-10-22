@@ -1,8 +1,10 @@
 # API (summary)
 
-Contract-first: the authoritative definition lives in `../../backend/api/openapi.yaml`. This document states required behavior; update the OpenAPI file to match.
+Contract-first: the authoritative definition is `api/openapi.yaml` (internal operational endpoint: `api/internal.yaml`, documentation only). This document gives the intent; if they disagree, the OpenAPI file wins.
 
-All endpoints except `POST /players` require `Authorization: Bearer <token>`. Errors use a common `ErrorResponse`.
+**Resolved:** every mutating game call (`start`, `reveal`, `guess`) returns the full updated `Game`. A guess that ends a round moves the game on automatically; the ended round carries its `answer`, and the client shows the result until the player continues (client-only UI state). There is no `next` endpoint, and no separate `/config`: `roundsPerGame` and `attemptsPerRound` are part of `Game`.
+
+All endpoints except `POST /players` require `Authorization: Bearer <token>`. Errors use RFC 9457 `application/problem+json`.
 
 | Method & path | Purpose |
 |---|---|

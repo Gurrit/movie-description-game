@@ -15,7 +15,7 @@
 - Scoring derived from stored attempts and reveals.
 
 ## Open items to settle during implementation
-1. Whether the guess response auto-advances rounds or a separate `next` call is used ([05](05-api.md)).
+1. ~~Guess response auto-advance vs `next` call~~: resolved, auto-advance (see [05](05-api.md)).
 2. Final defaults for `minVoteCount` and `maxPoolPages`, after trying the real TMDB pool size.
 3. Whether stats use counters or aggregation.
 4. Whether `PLOT` redaction needs smarter handling for franchise titles (e.g. "Star Wars" appearing as a common noun).

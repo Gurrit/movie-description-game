@@ -1,0 +1,53 @@
+# Operational endpoints. Documentation only: NOT used for code generation and not part of the public client.
+# Blocked from the public internet by the reverse proxy (see specification/tech/07-deployment.md).
+openapi: 3.0.3
+info:
+  title: Movie Description Game internal API
+  version: 1.0.0
+servers:
+  - url: /api
+paths:
+  /internal/generate:
+    post:
+      operationId: generateDailySet
+      summary: Ensure the daily set exists
+      description: Idempotent. Returns the existing set if present. Future dates beyond generation.preGenerateDays are rejected.
+      security:
+        - internalToken: []
+      parameters:
+        - name: date
+          in: query
+          required: false
+          description: UTC day, defaults to today
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: The set exists (created or already present)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [date, tmdbIds]
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  tmdbIds:
+                    type: array
+                    items:
+                      type: integer
+                      format: int32
+        '401':
+          description: Missing or wrong X-Internal-Token
+        '422':
+          description: Date not allowed
+        '503':
+          description: Generation failed
+components:
+  securitySchemes:
+    internalToken:
+      type: apiKey
+      in: header
+      name: X-Internal-Token

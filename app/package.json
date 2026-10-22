@@ -26,7 +26,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "generate:api": "openapi-generator-cli generate -i ../backend/api/openapi.yaml -g typescript-axios -o src/api/generated --global-property apiDocs=false,modelDocs=false,apiTests=false,modelTests=false --additional-properties=withSeparateModelsAndApi=true,apiPackage=api,modelPackage=model,useSingleRequestParameter=false,stringEnums=true,supportsES6=true"
+    "generate:api": "openapi-generator-cli generate -i ../api/openapi.yaml -g typescript-axios -o src/api/generated --global-property apiDocs=false,modelDocs=false,apiTests=false,modelTests=false --additional-properties=withSeparateModelsAndApi=true,apiPackage=api,modelPackage=model,useSingleRequestParameter=false,stringEnums=true,supportsES6=true"
   },
   "eslintConfig": {
     "extends": [
