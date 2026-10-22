@@ -17,7 +17,7 @@
 ## Endpoints
 Defined behavior is in `../rules/05-api.md`. Additions at technical level:
 - `POST /internal/generate?date=YYYY-MM-DD` (optional `date`, default today UTC; **future dates ≤ `generation.preGenerateDays` only**). Auth: header `X-Internal-Token` compared in constant time with env `INTERNAL_TOKEN`. Idempotent: returns 200 with the existing set if present. It is documented in `api/internal.yaml`, which is **not** used for code generation: the backend implements it by hand and the frontend never sees it.
-- `GET /healthz` (liveness) and `GET /readyz` (DB reachable), unauthenticated, outside the `/api` contract; use Spring Actuator health groups.
+- `GET /healthz/liveness` and `GET /healthz/readiness` (readiness includes DB reachability), unauthenticated, outside the `/api` prefix and the contract. These are Spring Actuator health groups with the health endpoint mapped to `/healthz`. The proxy does not expose them publicly; they are for container healthchecks.
 
 ## Rate limiting
 - Applied at the edge if available; otherwise, in-process token bucket per IP for `POST /players` and `GET /movies/search` (e.g. Bucket4j). Behind a proxy, use `X-Forwarded-For` (configure Spring `forward-headers-strategy`).

@@ -21,7 +21,7 @@ Internet ─443─▶ Caddy ─┬─ /api/*  ─▶ backend:8080 ─▶ postgre
 ## CI/CD (GitHub Actions)
 1. On pull request: lint, spec lint, backend build + tests (Testcontainers), frontend typecheck + tests. E2E (Playwright) on PR or nightly.
 2. On push to `master`: run the same checks, build the backend and web images, push them to GHCR tagged with the commit SHA and `latest`.
-3. Deploy job: SSH to the VPS (a dedicated deploy user, key stored in GitHub secrets) and run `docker compose -f deploy/docker-compose.prod.yml pull && … up -d`, then wait for `/readyz` and fail the job if it doesn't come up. Rollback = redeploy a previous SHA tag.
+3. Deploy job: SSH to the VPS (a dedicated deploy user, key stored in GitHub secrets) and run `docker compose -f deploy/docker-compose.prod.yml pull && … up -d`, then wait for `/healthz/readiness` and fail the job if it doesn't come up. Rollback = redeploy a previous SHA tag.
 4. The server pulls images from GHCR using a read-only token (or the images are public).
 
 ## Scheduling

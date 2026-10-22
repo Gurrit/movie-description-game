@@ -42,6 +42,14 @@ The working tree has uncommitted work in progress (a partial refactor of the bac
 6. Add Testcontainers + a smoke integration test: context starts, migrations apply.
 **Done when:** `./gradlew build` is green with an empty-but-wired app against Postgres.
 
+**Status: done.**
+- Dependencies are BOM-managed (`spring-boot-dependencies:4.0.1`). Boot 4 uses modular starters (`starter-flyway`, `starter-webflux-test`, `spring-boot-testcontainers`) and Jackson 3 (`tools.jackson.module:jackson-module-kotlin`).
+- All old code was deleted, including the whole `tmdb/` package: it was blocking (`.block()`) and entangled with Mongo entities, so it is rewritten in phase 3 rather than adapted.
+- Added: `application.yml`, validated `@ConfigurationProperties` (`game`, `tmdb`, `generation`, `redaction`), UTC `Clock`, `ApiException` + `ProblemExceptionHandler` (problem+json using the generated `Problem` model), `V1__init.sql`, a Postgres service in `docker-compose.yml` (Mongo and mongo-express removed).
+- Health endpoints: Actuator's health is mapped to `/healthz` (not under `/api`): `/healthz/liveness`, `/healthz/readiness` (includes R2DBC).
+- Tests: `ApplicationSmokeTest` (Testcontainers `postgres:17-alpine`) verifies that migrations create all 7 tables and that the probes are up. `./gradlew build` passes.
+- Not yet done: the backend `Dockerfile` still assumes the old layout (copies `api/` from inside `backend/`). It is fixed in phase 5, when the build context moves to the repo root.
+
 ## Phase 3: Backend domain (in this order)
 1. **tmdb/**: keep the existing clients; reshape to the three needed calls (discover, details+credits, search); add timeouts/retries; configurable base URL; WireMock tests with fixtures (≥ 7 movies).
 2. **clue/**: sealed `Clue` model, `ClueBuilder` (from details + credits), `Redactor` (pure, unit-tested thoroughly).

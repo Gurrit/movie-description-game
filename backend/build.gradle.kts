@@ -17,18 +17,33 @@ repositories {
 }
 
 dependencies {
-    implementation("org.springframework.boot:spring-boot-starter-webflux:4.0.1")
-    implementation("org.springframework.boot:spring-boot-starter-data-mongodb:4.0.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.11.0")
-    runtimeOnly("org.jetbrains.kotlin:kotlin-reflect:2.3.0")
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.1"))
 
-    testImplementation("org.springframework.boot:spring-boot-starter-test:4.0.1")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("tools.jackson.module:jackson-module-kotlin")
+
+    // Flyway migrates over JDBC at startup only; the application itself uses R2DBC
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
+    runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("org.postgresql:r2dbc-postgresql")
+
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation("org.testcontainers:testcontainers-r2dbc")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 application {
-    mainClass.set("xyz/engsmyre/moviedescriptiongame/MovieDescriptionGameApplication")
+    mainClass.set("xyz.engsmyre.moviedescriptiongame.MovieDescriptionGameApplicationKt")
 }
 
 kotlin {
