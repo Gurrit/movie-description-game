@@ -1,5 +1,5 @@
-const IMAGE_BASE: string =
-  import.meta.env.VITE_TMDB_IMAGE_BASE ?? 'https://image.tmdb.org/t/p/w342';
+// `||`, not `??`: an empty build arg must fall back to the default too
+const IMAGE_BASE: string = import.meta.env.VITE_TMDB_IMAGE_BASE || 'https://image.tmdb.org/t/p/w342';
 
 export function Poster({ path, title }: { path?: string | null; title: string }) {
   if (!path) {

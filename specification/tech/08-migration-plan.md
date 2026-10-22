@@ -94,6 +94,14 @@ Rewrite instead of porting: the old components assume scoring/sessions/5 movies.
 5. Remove `backend/k8s/` (Redis and k8s are not part of the target).
 **Done when:** `docker compose up` gives a working game; e2e passes.
 
+**Status: done** (e2e: 13 passed, 1 phone-only test skipped on desktop, in 29 s after the images are built).
+- `backend/Dockerfile` (multi-stage, JRE 21 alpine, non-root, `-XX:MaxRAMPercentage=60`) and `app/Dockerfile` (Node build, then Caddy with the SPA) both use the **repo root as build context**, because they need `api/openapi.yaml`. They use BuildKit cache mounts, so `docker buildx` is required to build them.
+- `app/Caddyfile` serves the SPA with an `index.html` fallback, proxies `/api/*` to the backend, and answers 404 for `/api/internal/*`. `SITE_ADDRESS` (default `:80`; a domain name turns on automatic TLS) and `BACKEND_ADDRESS` configure it, so phase 7 can reuse it.
+- `docker-compose.yml` (dev): `postgres` and `backend` by default; `--profile web` adds the production-like web image on port 8000. `.env.example` documents `TMDB_READ_TOKEN` and `INTERNAL_TOKEN`. The development stack itself was only config-checked (`docker compose config`); its images are the same ones the e2e run builds and exercises.
+- `e2e/`: its own compose project `mdg-e2e` (Postgres on tmpfs, fake TMDB, backend with a 3-round/2-attempt game, web image), Playwright with a desktop and a Pixel 7 project. `TMDB_BASE_URL` was added to `application.yml` so the backend can be pointed at the fake.
+- Removed `backend/k8s/` (including Redis, not part of the design) and the obsolete `backend/docs/ARCHITECTURE.md` (it described the old Mongo/scoring design).
+- Findings: the Poster base URL must fall back on an empty build arg (`||`, not `??`); spring property env vars drop the dashes (`GAME_ROUNDSPERGAME`); `docker compose build` silently uses the classic builder if buildx is missing, which rejects `--mount`.
+
 ## Phase 6: CI
 GitHub Actions: lint/spec lint → backend tests → frontend typecheck/tests → e2e. Add Dependabot/Renovate config. Image build/push to GHCR on `master`.
 

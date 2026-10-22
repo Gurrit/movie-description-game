@@ -46,6 +46,10 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+tasks.bootJar {
+    archiveFileName.set("app.jar")
+}
+
 application {
     mainClass.set("xyz.engsmyre.moviedescriptiongame.MovieDescriptionGameApplicationKt")
 }

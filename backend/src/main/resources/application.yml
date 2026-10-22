@@ -38,7 +38,7 @@ game:
   attempts-per-round: 3
 
 tmdb:
-  base-url: https://api.themoviedb.org/3
+  base-url: ${TMDB_BASE_URL:https://api.themoviedb.org/3}
   read-token: ${TMDB_READ_TOKEN:}
   min-vote-count: 5000
   min-runtime: 60

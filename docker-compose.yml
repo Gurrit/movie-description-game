@@ -1,3 +1,7 @@
+# Local development.
+#   docker compose up -d postgres backend    # the API on http://localhost:8080 (needs TMDB_READ_TOKEN in .env)
+#   cd app && pnpm dev                       # the app on http://localhost:3000, proxying /api to the backend
+#   docker compose --profile web up --build  # or: the production-like web image on http://localhost:8000
 services:
   postgres:
     image: postgres:17-alpine
@@ -14,6 +18,38 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/moviegame
+      SPRING_FLYWAY_URL: jdbc:postgresql://postgres:5432/moviegame
+      TMDB_READ_TOKEN: ${TMDB_READ_TOKEN:-}
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-dev-internal-token}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/healthz/readiness >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+
+  web:
+    profiles: ["web"]
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    ports:
+      - "${WEB_PORT:-8000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
 
 volumes:
   postgres-data:

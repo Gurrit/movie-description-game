@@ -15,7 +15,7 @@ Internet ─443─▶ Caddy ─┬─ /api/*  ─▶ backend:8080 ─▶ postgre
 - `docker-compose.yml`: local development (Postgres, backend, Vite dev server).
 - `deploy/docker-compose.prod.yml`: production services `caddy`, `backend`, `postgres`, using images from GHCR (`ghcr.io/<owner>/<repo>-backend`, `…-web`), with `restart: unless-stopped`, a named volume for Postgres data, healthchecks, and log rotation (`json-file` with `max-size`).
 - `deploy/Caddyfile`: site block for the domain; `handle /api/* { reverse_proxy backend:8080 }`; everything else `file_server` with `try_files {path} /index.html`; gzip/zstd; security headers.
-- The **web image** is `caddy` plus the built `dist/` (multi-stage build: node/pnpm build → copy into the caddy image). So the server needs only Docker; no Node or JDK on the host.
+- The **web image** (`app/Dockerfile`, build context = repo root) is `caddy` plus the built `dist/` (multi-stage build: node/pnpm build → copy into the caddy image). So the server needs only Docker; no Node or JDK on the host.
 - `deploy/.env` (on the server only, not in git) holds secrets; `deploy/.env.example` is committed.
 
 ## CI/CD (GitHub Actions)
@@ -48,7 +48,8 @@ Internet ─443─▶ Caddy ─┬─ /api/*  ─▶ backend:8080 ─▶ postgre
 | `SPRING_FLYWAY_URL`, `…USER`, `…PASSWORD` | JDBC connection for migrations |
 | `TMDB_READ_TOKEN` (or `TMDB_API_KEY`) | TMDB credentials |
 | `INTERNAL_TOKEN` | Shared secret for `/internal/generate` |
-| `GAME_*`, `TMDB_MIN_VOTE_COUNT`, … | Overrides for config in `../rules/06-configuration.md` |
+| `TMDB_BASE_URL` | Override of the TMDB API base (the e2e stack points it at a fake) |
+| `GAME_ROUNDSPERGAME`, `GAME_ATTEMPTSPERROUND`, `TMDB_MINVOTECOUNT`, … | Overrides for config in `../rules/06-configuration.md`; env names drop the dashes of the property |
 
 No CORS configuration is needed (single origin through Caddy).
 

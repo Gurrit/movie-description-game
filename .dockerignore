@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/build
+**/.gradle
+**/.git
+.idea
+**/*.log
+**/.DS_Store
+e2e
+specification
