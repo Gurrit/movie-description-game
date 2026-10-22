@@ -1,0 +1,136 @@
+lockfile_version: '1'
+apm_version: 0.34.0
+dependencies:
+- repo_url: anthropics/skills
+  name: frontend-design
+  host: github.com
+  resolved_commit: dbd4588f9e1033efb41dad4bef2f7947c8993d44
+  resolved_ref: dbd4588f9e1033efb41dad4bef2f7947c8993d44
+  version: unknown
+  virtual_path: skills/frontend-design
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .claude/skills/frontend-design
+  - .claude/skills/frontend-design/LICENSE.txt
+  - .claude/skills/frontend-design/SKILL.md
+  deployed_file_hashes:
+    .claude/skills/frontend-design/LICENSE.txt: sha256:0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594
+    .claude/skills/frontend-design/SKILL.md: sha256:d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3
+  content_hash: sha256:89496d5dd00f4810205f351759594fc2742bf8eea85a2f2b2d1de59f4bd91576
+- repo_url: anthropics/skills
+  name: webapp-testing
+  host: github.com
+  resolved_commit: dbd4588f9e1033efb41dad4bef2f7947c8993d44
+  resolved_ref: dbd4588f9e1033efb41dad4bef2f7947c8993d44
+  version: unknown
+  virtual_path: skills/webapp-testing
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .claude/skills/webapp-testing
+  - .claude/skills/webapp-testing/LICENSE.txt
+  - .claude/skills/webapp-testing/SKILL.md
+  - .claude/skills/webapp-testing/examples/console_logging.py
+  - .claude/skills/webapp-testing/examples/element_discovery.py
+  - .claude/skills/webapp-testing/examples/static_html_automation.py
+  - .claude/skills/webapp-testing/scripts/with_server.py
+  deployed_file_hashes:
+    .claude/skills/webapp-testing/LICENSE.txt: sha256:bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362
+    .claude/skills/webapp-testing/SKILL.md: sha256:51b7349e77ec63b7744a6f63647e7566a0b4d2e301121cc10e8c2113af6556a2
+    .claude/skills/webapp-testing/examples/console_logging.py: sha256:ea46877289acb82da7e7ce59d0bc37c8977cd57e2a006d0c88d7a1c625bf95da
+    .claude/skills/webapp-testing/examples/element_discovery.py: sha256:d63c89604a22f8845d724e95dda45db49b1bf57c25ce0a83afbb7b8da3d402f0
+    .claude/skills/webapp-testing/examples/static_html_automation.py: sha256:9d533aafb875ee3ab8b8ebf8f5b9003ac8d999da3d09b285cce252e623140064
+    .claude/skills/webapp-testing/scripts/with_server.py: sha256:b0dcf4918935b795f4eda9821579b9902119235ff4447f687a30286e7d0925fd
+  content_hash: sha256:8320d78c856340fa2f09a3ffb79b91de9427945abc18d36b6d7e9204120dad0a
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/skills/frontend-design
+  runtime: null
+  scope: project
+  owners:
+  - anthropics/skills/skills/frontend-design
+  active_owner: anthropics/skills/skills/frontend-design
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/frontend-design/LICENSE.txt
+  runtime: null
+  scope: project
+  owners:
+  - anthropics/skills/skills/frontend-design
+  active_owner: anthropics/skills/skills/frontend-design
+  content_hash: sha256:0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594
+- kind: project-relative
+  target: claude
+  value: .claude/skills/frontend-design/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - anthropics/skills/skills/frontend-design
+  active_owner: anthropics/skills/skills/frontend-design
+  content_hash: sha256:d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3
+- kind: project-relative
+  target: claude
+  value: .claude/skills/webapp-testing
+  runtime: null
+  scope: project
+  owners:
+  - anthropics/skills/skills/webapp-testing
+  active_owner: anthropics/skills/skills/webapp-testing
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/webapp-testing/LICENSE.txt
+  runtime: null
+  scope: project
+  owners:
+  - anthropics/skills/skills/webapp-testing
+  active_owner: anthropics/skills/skills/webapp-testing
+  content_hash: sha256:bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362
+- kind: project-relative
+  target: claude
+  value: .claude/skills/webapp-testing/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - anthropics/skills/skills/webapp-testing
+  active_owner: anthropics/skills/skills/webapp-testing
+  content_hash: sha256:51b7349e77ec63b7744a6f63647e7566a0b4d2e301121cc10e8c2113af6556a2
+- kind: project-relative
+  target: claude
+  value: .claude/skills/webapp-testing/examples/console_logging.py
+  runtime: null
+  scope: project
+  owners:
+  - anthropics/skills/skills/webapp-testing
+  active_owner: anthropics/skills/skills/webapp-testing
+  content_hash: sha256:ea46877289acb82da7e7ce59d0bc37c8977cd57e2a006d0c88d7a1c625bf95da
+- kind: project-relative
+  target: claude
+  value: .claude/skills/webapp-testing/examples/element_discovery.py
+  runtime: null
+  scope: project
+  owners:
+  - anthropics/skills/skills/webapp-testing
+  active_owner: anthropics/skills/skills/webapp-testing
+  content_hash: sha256:d63c89604a22f8845d724e95dda45db49b1bf57c25ce0a83afbb7b8da3d402f0
+- kind: project-relative
+  target: claude
+  value: .claude/skills/webapp-testing/examples/static_html_automation.py
+  runtime: null
+  scope: project
+  owners:
+  - anthropics/skills/skills/webapp-testing
+  active_owner: anthropics/skills/skills/webapp-testing
+  content_hash: sha256:9d533aafb875ee3ab8b8ebf8f5b9003ac8d999da3d09b285cce252e623140064
+- kind: project-relative
+  target: claude
+  value: .claude/skills/webapp-testing/scripts/with_server.py
+  runtime: null
+  scope: project
+  owners:
+  - anthropics/skills/skills/webapp-testing
+  active_owner: anthropics/skills/skills/webapp-testing
+  content_hash: sha256:b0dcf4918935b795f4eda9821579b9902119235ff4447f687a30286e7d0925fd

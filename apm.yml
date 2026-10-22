@@ -1,0 +1,16 @@
+name: movie-description-game
+version: 1.0.0
+description: APM project for movie-description-game
+author: gustav engsmyre
+# Which agent platforms to deploy to.
+# Resolution order: --target flag > this field > auto-detect from filesystem.
+# Accepted values: agent-skills, antigravity, claude, codex, copilot, cursor, gemini, grok-bot, grok-build, hermes, kiro, opencode, vscode, windsurf
+targets:
+  - claude
+dependencies:
+  apm:
+    - anthropics/skills/skills/frontend-design#dbd4588f9e1033efb41dad4bef2f7947c8993d44
+    - anthropics/skills/skills/webapp-testing#dbd4588f9e1033efb41dad4bef2f7947c8993d44
+  mcp: []
+includes: auto
+scripts: {}
