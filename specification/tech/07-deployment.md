@@ -21,7 +21,7 @@ Internet ─443─▶ Caddy ─┬─ /api/*  ─▶ backend:8080 ─▶ postgre
 ## CI/CD (GitHub Actions)
 1. On pull request: lint, spec lint, backend build + tests (Testcontainers), frontend typecheck + tests. E2E (Playwright) on PR or nightly.
 2. On push to `master`: run the same checks, build the backend and web images, push them to GHCR tagged with the commit SHA and `latest`.
-3. Deploy job: SSH to the VPS (a dedicated deploy user, key stored in GitHub secrets) and run `docker compose -f deploy/docker-compose.prod.yml pull && … up -d`, then wait for `/healthz/readiness` and fail the job if it doesn't come up. Rollback = redeploy a previous SHA tag.
+3. Deploy job: SSH to the VPS (a dedicated deploy user, key stored in GitHub secrets) and run `docker compose -f deploy/docker-compose.prod.yml pull && … up -d`, then wait for `/api/healthz/readiness` and fail the job if it doesn't come up. Rollback = redeploy a previous SHA tag.
 4. The server pulls images from GHCR using a read-only token (or the images are public).
 
 ## Scheduling
@@ -54,7 +54,7 @@ No CORS configuration is needed (single origin through Caddy).
 
 ## Resource notes
 - JVM: `-XX:MaxRAMPercentage=60`, container memory limit ~768 MB for the backend, ~384 MB for Postgres (`shared_buffers` ~128 MB). Startup time (~10-20 s) doesn't matter on an always-on host.
-- Observability: Actuator health, `docker compose logs`, and an external uptime check (free tier of any uptime monitor) on `/healthz`.
+- Observability: Actuator health, `docker compose logs`, and an external uptime check (free tier of any uptime monitor) on `/api/healthz/liveness`.
 
 ## Moving off the VPS later
 The images, env vars and Postgres URL are all that the application needs, so migrating to a managed platform (Render, Fly.io, Railway) means swapping Caddy for the platform's static hosting + `/api` rewrite and pointing at a managed Postgres. No application changes.

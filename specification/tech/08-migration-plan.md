@@ -61,6 +61,16 @@ The working tree has uncommitted work in progress (a partial refactor of the bac
 8. Replace `ApiContractTests` with spec-validating integration tests; port `SuggestionServiceTests` only if the suggestion logic survives (otherwise delete).
 **Done when:** the full game flow passes integration tests end-to-end through the API with TMDB stubbed.
 
+**Status: done** (46 tests green, every integration response validated against `api/openapi.yaml`).
+- `tmdb/`: `TmdbClient` interface and a non-blocking `WebClientTmdbClient` (timeout, retry with backoff on 429/5xx/timeouts, 404 → null, failures → `TmdbUnavailableException`/503). Needs `spring-boot-starter-webclient` in Boot 4. WireMock-tested.
+- `clue/`: flat `Clue`/`ClueContent`, `ClueBuilder` (eligibility + clue construction), pure `Redactor`. The clue model is flat rather than the sealed hierarchy first sketched, to match the API.
+- `challenge/`: `MovieSelector`, `GameGenerator`, `GameRepository`, `GenerationScheduler`, `InternalGenerationController`. Selection runs outside the generation transaction (see `04-backend.md`).
+- `player/`: `TokenService`, `PlayerRepository`, `PlayerAuthFilter` (puts the player id in the Reactor context; read in controllers with `currentPlayerId()`), `PlayerController`. Plus `common/RateLimitFilter`.
+- `game/`: `PlaythroughService` (start, reveal, guess), `PlaythroughRepository`, `GameViewMapper` (the only place deciding what a player may see), `RevealPolicy`/`FreeRevealPolicy`, `GameController`.
+- `movie/MovieController` (cached search), `stats/StatsService`.
+- Findings along the way: `WebTestClient` already includes the `/api` base path; Actuator shares that base path (health is `/api/healthz/...`, not outside it); responses must omit `null` fields to satisfy the contract (`default-property-inclusion: non_null`); Boot 4 test slices moved (`@AutoConfigureWebTestClient` is in `org.springframework.boot.webtestclient.autoconfigure`).
+- Not covered by tests yet: `GenerationScheduler` (trivial wiring), and the TMDB pool quality against the **real** API. The latter is the manual check described under Risks.
+
 ## Phase 4: Frontend rebuild
 Rewrite instead of porting: the old components assume scoring/sessions/5 movies.
 1. Replace CRA with Vite: new `app/` scaffold (`pnpm create vite` react-ts), `packageManager` pinned, delete `yarn.lock`, `react-scripts`, `reportWebVitals`, `src/api/generated/`, `nginx.conf`.

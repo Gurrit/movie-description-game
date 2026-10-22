@@ -187,7 +187,7 @@ Notes:
 - `UNIQUE (player_id, game_id)` allows one playthrough per player per game, hence per day.
 - `guess` primary key `(playthrough_id, position, attempt_no)` makes concurrent double submits fail on insert instead of consuming two attempts; the service maps the unique-violation to `409`. `title`/`release_year` come from the TMDB lookup done when the guess is submitted.
 - Stats are an aggregate query over `playthrough`/`playthrough_round` (indexed by `player_id`). Counters are not stored initially.
-- `clues` JSONB shape: `[{"id":"plot","type":"PLOT","order":1,"content":{...}}, ...]`; content shapes are documented per type in `../rules/02-clues.md`. The reader tolerates unknown fields. Content is deserialized with Jackson into a sealed Kotlin hierarchy.
+- `clues` JSONB shape: `[{"id":"plot","type":"PLOT","order":1,"content":{...}}, ...]`, where `content` is one flat object with optional fields (`text`, `genres`, `runtimeMinutes`, `releaseYear`, `people`), the same shape as `ClueContent` in the API; null fields are omitted. Content shapes per type are documented in `../rules/02-clues.md`. The reader tolerates unknown fields.
 - Guess evaluation, round advance and playthrough update happen in **one transaction** (`TransactionalOperator`); the `playthrough_round` row is locked (`SELECT … FOR UPDATE`) while evaluating a guess.
 
 ## Local and test

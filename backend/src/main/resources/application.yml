@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: movie-description-game
+  jackson:
+    default-property-inclusion: non_null
   webflux:
     base-path: /api
   r2dbc:

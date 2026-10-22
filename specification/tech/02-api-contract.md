@@ -7,7 +7,7 @@
 4. CI checks: spec lint (`npx @stoplight/spectral-cli lint api/*.yaml`, config in `.spectral.yaml`), backend build, frontend typecheck.
 
 ## Conventions
-- JSON, camelCase. IDs: `tmdbId` as integer; player/game IDs as UUIDs.
+- JSON, camelCase. `null` fields are omitted from responses (`spring.jackson.default-property-inclusion: non_null`), which the contract relies on: optional fields are absent, never `null`. IDs: `tmdbId` as integer; player/game IDs as UUIDs.
 - Dates: `date` fields use `YYYY-MM-DD` (UTC day); timestamps use `date-time`.
 - Enums are closed in the spec but clients must tolerate unknown values for `ClueType`.
 - Errors use RFC 9457 `application/problem+json`: `{type, title, status, detail, code}` where `code` is a stable machine-readable string (e.g. `ROUND_OVER`, `ALREADY_GUESSED`, `GAME_NOT_STARTED`, `TMDB_UNAVAILABLE`).
@@ -17,7 +17,7 @@
 ## Endpoints
 Defined behavior is in `../rules/05-api.md`. Additions at technical level:
 - `POST /internal/generate?date=YYYY-MM-DD` (optional `date`, default today UTC; **future dates ≤ `generation.preGenerateDays` only**). Auth: header `X-Internal-Token` compared in constant time with env `INTERNAL_TOKEN`. Idempotent: returns 200 with the existing set if present. It is documented in `api/internal.yaml`, which is **not** used for code generation: the backend implements it by hand and the frontend never sees it.
-- `GET /healthz/liveness` and `GET /healthz/readiness` (readiness includes DB reachability), unauthenticated, outside the `/api` prefix and the contract. These are Spring Actuator health groups with the health endpoint mapped to `/healthz`. The proxy does not expose them publicly; they are for container healthchecks.
+- `GET /api/healthz/liveness` and `GET /api/healthz/readiness` (readiness includes DB reachability), unauthenticated. These are Spring Actuator health groups with the health endpoint mapped to `/healthz`. Actuator shares the application's `/api` base path. They expose only UP/DOWN (no details), so they can stay public, which also lets an external uptime monitor use them; container healthchecks call them on `localhost:8080`.
 
 ## Rate limiting
 - Applied at the edge if available; otherwise, in-process token bucket per IP for `POST /players` and `GET /movies/search` (e.g. Bucket4j). Behind a proxy, use `X-Forwarded-For` (configure Spring `forward-headers-strategy`).

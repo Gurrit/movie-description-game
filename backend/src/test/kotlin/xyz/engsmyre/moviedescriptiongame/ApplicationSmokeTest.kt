@@ -10,10 +10,11 @@ import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTest
 import org.springframework.context.annotation.Import
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.web.reactive.server.WebTestClient
+import xyz.engsmyre.moviedescriptiongame.support.IntegrationTestConfig
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
-@Import(PostgresTestConfig::class)
+@Import(IntegrationTestConfig::class)
 class ApplicationSmokeTest(
     @Autowired private val db: DatabaseClient,
     @Autowired private val client: WebTestClient,

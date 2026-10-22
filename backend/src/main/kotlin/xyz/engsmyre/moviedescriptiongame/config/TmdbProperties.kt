@@ -12,6 +12,9 @@ data class TmdbProperties(
     val originalLanguage: String? = null,
     val maxPoolPages: Int = 100,
     val includeAdult: Boolean = false,
+    val requestTimeoutSeconds: Long = 5,
+    val maxRetries: Long = 3,
+    val retryBackoffMillis: Long = 500,
 ) {
     init {
         require(minVoteCount >= 0) { "tmdb.min-vote-count must be >= 0" }

@@ -7,14 +7,14 @@ Kotlin, Spring Boot 4.x, `spring-boot-starter-webflux`, `spring-boot-starter-dat
 ```
 game/        GameController, PlaythroughService, PlaythroughRepository, domain (Playthrough, Round, RevealPolicy)
 challenge/   GameGenerator, GameRepository, GenerationController (internal), MovieSelector
-clue/        Clue model (sealed), ClueBuilder, Redactor
+clue/        Clue model (flat, mirrors the API), ClueBuilder, Redactor
 player/      PlayerController, PlayerService, TokenService, auth filter
 stats/       StatsController, StatsService
 tmdb/        TmdbClient (WebClient), TMDB DTOs, SearchController
 config/      @ConfigurationProperties classes, Clock bean, Jackson, security/web config
 common/      Problem+json error handling, utilities
 ```
-Rules: controllers implement generated OpenAPI interfaces and only map DTOs ⇄ domain; business logic lives in services; repositories are only called by services of the same feature. Domain types are separate from generated API models and from persistence entities, with mappers between them.
+Rules: controllers implement generated OpenAPI interfaces and only map DTOs ⇄ domain; business logic lives in services; repositories are only called by services of the same feature. Domain types are separate from generated API models; persistence uses `DatabaseClient` with plain SQL and small repository classes (no ORM entities), so what runs against the database is always visible.
 
 ## Coroutines
 - Controllers and services are `suspend`; collections are `Flow` only when streaming makes sense.
@@ -35,9 +35,13 @@ Rules: controllers implement generated OpenAPI interfaces and only map DTOs ⇄ 
 - Client view mapping happens in one place (`GameViewMapper`), which is the only code allowed to expose clue content or answers, applying the redaction-of-unearned rules from the functional spec.
 
 ## Challenge generation
-- `GameGenerator.ensure(date)`: under the date's advisory lock, if a `daily_game` row exists for the date return its game; otherwise generate, upsert the `movie` rows and insert the `game`, `game_movie` and `daily_game` rows in one transaction (so a partial set is never visible). A concurrent generator hitting the primary key / unique constraint rolls back and re-reads. Use a Postgres advisory lock (`pg_advisory_xact_lock(hash(date))`) around generation to avoid wasted TMDB calls across instances.
-- `MovieSelector` implements the discover → validate → build-clues pipeline from `../rules/03-challenge-generation.md` using an injectable `Random` (seedable for tests).
-- `Redactor` is a pure function (title/people → text → masked text + ratio); heavily unit-tested.
+- `GameGenerator.ensure(date)`: if a game exists for the date (via `daily_game`), return it. Otherwise it reads the movie ids used within `generation.noRepeatDays`, asks `MovieSelector` for `roundsPerGame` movies, then in **one transaction** takes the date's Postgres advisory lock (`pg_advisory_xact_lock`), re-checks for an existing game, and inserts `movie` (insert-or-keep), `game`, `game_movie` and `daily_game`. A partial game is never visible.
+- **Selection happens outside the transaction**, because it makes many slow TMDB calls and must not hold a database connection. The lock therefore does not prevent two instances from both selecting; it guarantees that only the first insert wins and the second returns the winner's game. Wasted TMDB calls in that rare race are accepted.
+- Existing `movie` rows are never overwritten (`ON CONFLICT DO NOTHING`): a movie that returns after the no-repeat window keeps the clues it was first generated with, so past playthroughs stay reproducible.
+- If `maxAttempts` candidates are examined without finding enough usable movies, generation fails with `GENERATION_FAILED` (503) and the log lists why candidates were rejected.
+- `MovieSelector` implements the discover → validate → build-clues pipeline from `../rules/03-challenge-generation.md` using an injectable `kotlin.random.Random` (seeded in tests). It fetches the first page to learn `total_pages`, then samples random pages (caching them for the run).
+- `ClueBuilder` produces the stored clues or a rejection reason; `Redactor` is a pure function (title/people → text → masked text + counts) with its own tests.
+- `GenerationScheduler` runs `ensure` for today (and `preGenerateDays` ahead) at `generation.cron` in UTC; disabled with `generation.scheduler-enabled=false` (tests).
 
 ## TMDB client
 - Endpoints used: `/discover/movie`, `/movie/{id}?append_to_response=credits`, `/search/movie`. Auth via the v4 read token header (`Authorization: Bearer`) or v3 `api_key` param, from env `TMDB_API_KEY`/`TMDB_READ_TOKEN`.

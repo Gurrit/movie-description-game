@@ -8,6 +8,7 @@ data class GenerationProperties(
     val maxAttempts: Int = 100,
     val preGenerateDays: Int = 0,
     val noRepeatDays: Int = 180,
+    val schedulerEnabled: Boolean = true,
     val internalToken: String = "",
 ) {
     init {

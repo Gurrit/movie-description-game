@@ -15,12 +15,21 @@ tmdb:
   originalLanguage: null  # e.g. "en"
   maxPoolPages: 100
   includeAdult: false
+  requestTimeoutSeconds: 5
+  maxRetries: 3           # for 429/5xx/timeouts, exponential backoff
+  retryBackoffMillis: 500
 
 generation:
   cron: "0 0 0 * * *"     # UTC
   maxAttempts: 100
   preGenerateDays: 0
   noRepeatDays: 180       # a movie can't reappear within this many days
+  schedulerEnabled: true  # false disables the in-process daily job (tests)
+  internalToken: ${INTERNAL_TOKEN}  # blank disables /internal/generate
+
+ratelimit:                # per IP and minute
+  playersPerMinute: 20    # POST /players
+  searchPerMinute: 90     # GET /movies/search
 
 redaction:
   maxMaskedRatio: 0.35
