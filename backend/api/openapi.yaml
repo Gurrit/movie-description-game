@@ -13,9 +13,9 @@ info:
     name: MIT
 
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8080/api
     description: Local development server
-  - url: https://api.moviedescription.game
+  - url: https://api.moviedescription.game/api
     description: Production server
 
 tags:
@@ -31,7 +31,7 @@ tags:
     description: Administrative operations
 
 paths:
-  /api/challenge/today:
+  /challenge/today:
     get:
       tags:
         - Challenge
@@ -58,7 +58,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/challenge/{date}:
+  /challenge/{date}:
     get:
       tags:
         - Challenge
@@ -94,7 +94,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/clue/{type}:
+  /clue/{type}:
     post:
       tags:
         - Clue
@@ -136,7 +136,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/guess:
+  /guess:
     post:
       tags:
         - Guess
@@ -172,7 +172,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/session:
+  /session:
     post:
       tags:
         - Session
@@ -180,18 +180,14 @@ paths:
       description: Creates a new game session or returns an existing one for the current day's challenge
       operationId: createSession
       requestBody:
+        required: false
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                sessionId:
-                  type: string
-                  description: Optional existing session ID to resume
-                  example: "abc123"
+              $ref: '#/components/schemas/SessionRequest'
       responses:
         '200':
-          description: Session details
+          description: Existing session resumed
           content:
             application/json:
               schema:
@@ -203,7 +199,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SessionResponse'
 
-  /api/session/{sessionId}:
+  /session/{sessionId}:
     get:
       tags:
         - Session
@@ -232,7 +228,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/admin/refresh:
+  /admin/refresh:
     post:
       tags:
         - Admin
@@ -295,6 +291,14 @@ components:
           description: Unique session identifier
           example: "abc123-def456-ghi789"
 
+    SessionRequest:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          description: Optional existing session ID to resume
+          example: "abc123-def456-ghi789"
+
     GuessRequest:
       type: object
       required:
@@ -340,6 +344,7 @@ components:
         - clueType
         - remainingScore
         - cluesUsed
+        - currentMovieIndex
       properties:
         clue:
           type: string
@@ -367,6 +372,7 @@ components:
         - correct
         - score
         - remainingMovies
+        - totalScore
       properties:
         correct:
           type: boolean
@@ -377,7 +383,6 @@ components:
           description: Points earned from this guess (including clue penalties)
           example: 850
         movie:
-          type: object
           description: The movie details (only present if correct)
           allOf:
             - $ref: '#/components/schemas/MovieInfo'
@@ -401,9 +406,12 @@ components:
       required:
         - sessionId
         - challengeId
+        - challengeDate
         - currentScore
         - cluesUsed
         - guessedMovies
+        - correctGuesses
+        - currentMovieIndex
       properties:
         sessionId:
           type: string
@@ -460,6 +468,8 @@ components:
         - id
         - title
         - year
+        - directors
+        - genres
       properties:
         id:
           type: integer
@@ -493,6 +503,9 @@ components:
           type: string
           description: URL to movie poster
           example: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg"
+        description:
+          type: string
+          description: Movie description/plot
 
     ErrorResponse:
       type: object

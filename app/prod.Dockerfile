@@ -3,6 +3,7 @@ FROM node:16 as BUILD
 WORKDIR /usr/src/app/
 
 COPY package.json package.json
+COPY tsconfig.json tsconfig.json
 # COPY yarn.lock yarn.lock
 
 RUN yarn --production

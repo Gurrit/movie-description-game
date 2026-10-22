@@ -1,9 +1,9 @@
 package xyz.engsmyre.moviedescriptiongame.service
 
 import org.springframework.stereotype.Service
-import xyz.engsmyre.moviedescriptiongame.api.dto.ClueType
-import xyz.engsmyre.moviedescriptiongame.api.dto.GuessResponse
-import xyz.engsmyre.moviedescriptiongame.api.dto.MovieInfo
+import xyz.engsmyre.moviedescriptiongame.api.model.ClueType
+import xyz.engsmyre.moviedescriptiongame.api.model.GuessResponse
+import xyz.engsmyre.moviedescriptiongame.api.model.MovieInfo
 import xyz.engsmyre.moviedescriptiongame.db.entity.ChallengeEntity
 import xyz.engsmyre.moviedescriptiongame.db.entity.SessionEntity
 import xyz.engsmyre.moviedescriptiongame.db.repository.ChallengeRepository
@@ -92,7 +92,7 @@ class GuessService(
         // Sum up point costs of all clues used for this movie
         val clueCost = cluesUsed.sumOf { clueTypeName ->
             try {
-                ClueType.valueOf(clueTypeName).pointCost
+                ClueType.valueOf(clueTypeName).pointCost()
             } catch (e: IllegalArgumentException) {
                 0
             }

@@ -1,8 +1,8 @@
 package xyz.engsmyre.moviedescriptiongame.api.mapper
 
 import org.springframework.stereotype.Component
-import xyz.engsmyre.moviedescriptiongame.api.dto.ChallengeResponse
-import xyz.engsmyre.moviedescriptiongame.api.dto.MovieInfo
+import xyz.engsmyre.moviedescriptiongame.api.model.ChallengeResponse
+import xyz.engsmyre.moviedescriptiongame.api.model.MovieInfo
 import xyz.engsmyre.moviedescriptiongame.db.entity.ChallengeEntity
 import xyz.engsmyre.moviedescriptiongame.db.entity.MovieSubEntity
 import java.time.LocalDate

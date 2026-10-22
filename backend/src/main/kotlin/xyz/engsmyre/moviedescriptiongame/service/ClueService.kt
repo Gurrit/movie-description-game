@@ -1,8 +1,8 @@
 package xyz.engsmyre.moviedescriptiongame.service
 
 import org.springframework.stereotype.Service
-import xyz.engsmyre.moviedescriptiongame.api.dto.ClueResponse
-import xyz.engsmyre.moviedescriptiongame.api.dto.ClueType
+import xyz.engsmyre.moviedescriptiongame.api.model.ClueResponse
+import xyz.engsmyre.moviedescriptiongame.api.model.ClueType
 import xyz.engsmyre.moviedescriptiongame.db.entity.ChallengeEntity
 import xyz.engsmyre.moviedescriptiongame.db.entity.MovieSubEntity
 import xyz.engsmyre.moviedescriptiongame.db.entity.SessionEntity
@@ -103,7 +103,7 @@ class ClueService(
         val movieIndex = session.currentMovieIndex
         
         // Deduct points
-        val newScore = session.currentScore - clueType.pointCost
+        val newScore = session.currentScore - clueType.pointCost()
         
         // Update clues used for current movie
         val currentClues = session.cluesUsed[movieIndex] ?: emptyList()

@@ -6,6 +6,7 @@ COPY build.gradle.kts build.gradle.kts
 COPY gradlew gradlew
 COPY settings.gradle.kts settings.gradle.kts
 COPY gradle gradle
+COPY api api
 COPY src src
 
 # Build the application

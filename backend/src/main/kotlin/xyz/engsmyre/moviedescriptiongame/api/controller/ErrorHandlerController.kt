@@ -1,16 +1,14 @@
 package xyz.engsmyre.moviedescriptiongame.api.controller
 
-import io.swagger.v3.oas.annotations.Hidden
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.server.ResponseStatusException
-import xyz.engsmyre.moviedescriptiongame.api.dto.ErrorResponse
+import xyz.engsmyre.moviedescriptiongame.api.model.ErrorResponse
 import xyz.engsmyre.moviedescriptiongame.exceptions.CustomException
 import java.time.format.DateTimeParseException
 
-@Hidden  // Hide from Swagger UI as it's global error handling
 @ControllerAdvice
 class ErrorHandlerController {
 
