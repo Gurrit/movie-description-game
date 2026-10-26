@@ -1,11 +1,11 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    kotlin("jvm") version "2.3.0"
+    kotlin("jvm") version "2.4.21"
 
-    id("org.jetbrains.kotlin.plugin.spring") version "2.3.0"
-    id("org.springframework.boot") version "4.0.1"
-    id("org.openapi.generator") version "7.14.0"
+    id("org.jetbrains.kotlin.plugin.spring") version "2.4.21"
+    id("org.springframework.boot") version "4.1.2"
+    id("org.openapi.generator") version "7.26.0"
     application
 }
 
@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.1"))
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.1.2"))
 
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-webclient")
@@ -41,7 +41,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-r2dbc")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-    testImplementation("org.wiremock:wiremock-standalone:3.13.1")
+    testImplementation("org.wiremock:wiremock-standalone:3.13.2")
     testImplementation("com.atlassian.oai:swagger-request-validator-core:2.44.9")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
