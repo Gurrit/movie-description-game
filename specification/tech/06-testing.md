@@ -4,7 +4,7 @@
 |---|---|---|
 | Backend unit | JUnit 5, plain assertions | `Redactor`, `ClueBuilder`, `MovieSelector` (seeded random, fake TMDB), `RateLimitFilter` |
 | Backend TMDB client | JUnit 5 + **WireMock** | Request parameters and auth header, parsing, 404 → null, retry on 5xx, no retry on 4xx |
-| Backend integration | `@SpringBootTest` + WebTestClient, **Testcontainers Postgres**, **WireMock** for TMDB, fixed `Clock` | Full flows over HTTP: start, reveal, guess, round advance, completion, stats, idempotency, concurrent double-submit, shared game, search, internal endpoint auth |
+| Backend integration | `@SpringBootTest` + WebTestClient, **Testcontainers Postgres**, **WireMock** for TMDB, fixed `Clock` | Full flows over HTTP: start, guess (unlocking clues), round advance, completion, stats, idempotency, concurrent double-submit, shared game, search, internal endpoint auth |
 | Contract | `swagger-request-validator-core` against `api/openapi.yaml` | Every request/response of the integration flow is validated, so the server cannot drift from the spec |
 | Frontend | Vitest, Testing Library, **MSW** with an in-memory fake of the API | A whole game through the UI, reload resume, error states, 401 recovery, autocomplete, clue rendering |
 | End-to-end | **Playwright** against the real stack in docker-compose (`e2e/`): Postgres, backend, web image, and a **fake TMDB** | Full game in a browser, reload resumes, same game for every player, token recovery, proxy rules, deep links, phone layout |

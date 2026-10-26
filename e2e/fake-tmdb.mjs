@@ -21,6 +21,7 @@ const details = (id) => ({
   runtime: 100 + (id % 40),
   poster_path: `/poster${id}.svg`,
   genres: [{ id: 1, name: 'Drama' }, { id: 2, name: 'Adventure' }],
+  production_companies: [{ id: 1, name: `Studio ${id} Pictures` }, { id: 2, name: 'Second Company' }],
   credits: {
     cast: [
       { name: `Alice Actor${id}`, character: 'Hero', order: 0 },

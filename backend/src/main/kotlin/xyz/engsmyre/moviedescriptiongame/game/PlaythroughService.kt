@@ -5,24 +5,25 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.reactive.TransactionalOperator
 import org.springframework.transaction.reactive.executeAndAwait
 import xyz.engsmyre.moviedescriptiongame.api.model.Game
+import xyz.engsmyre.moviedescriptiongame.challenge.DailyGame
 import xyz.engsmyre.moviedescriptiongame.challenge.GameGenerator
 import xyz.engsmyre.moviedescriptiongame.challenge.GameRepository
 import xyz.engsmyre.moviedescriptiongame.common.ApiException
 import xyz.engsmyre.moviedescriptiongame.tmdb.TmdbClient
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
 class StartedGame(val game: Game, val created: Boolean)
 
-/** The player's side of a game: starting it, revealing clues and guessing. */
+/** The player's side of a game: starting it, guessing and skipping. */
 @Service
 class PlaythroughService(
     private val playthroughs: PlaythroughRepository,
     private val games: GameRepository,
     private val generator: GameGenerator,
     private val tmdb: TmdbClient,
-    private val reveals: RevealPolicy,
     private val tx: TransactionalOperator,
     private val clock: Clock,
 ) {
@@ -45,25 +46,6 @@ class PlaythroughService(
         return StartedGame(view(id), created)
     }
 
-    suspend fun reveal(playerId: UUID, clueId: String): Game {
-        val playthrough = activePlaythrough(playerId)
-        val id = tx.executeAndAwait {
-            val locked = playthroughs.lock(playthrough.id)
-            ensureInProgress(locked)
-            val game = games.findById(locked.gameId)!!
-            val movie = game.movies[locked.currentRound]
-            if (movie.clues.none { it.id == clueId }) {
-                throw ApiException(HttpStatus.NOT_FOUND, "CLUE_NOT_FOUND", "No such clue", "Unknown clue '$clueId'")
-            }
-            val attempts = playthroughs.guesses(locked.id).count { it.position == locked.currentRound }
-            val revealed = playthroughs.reveals(locked.id).count { it.position == locked.currentRound }
-            reveals.check(RoundState(locked.currentRound, RoundStatus.ACTIVE), attempts, revealed)
-            playthroughs.insertReveal(locked.id, locked.currentRound, clueId, attempts, clock.instant())
-            locked.id
-        }!!
-        return view(id)
-    }
-
     suspend fun guess(playerId: UUID, tmdbId: Int): Game {
         val playthrough = activePlaythrough(playerId)
         // Looked up before the transaction so no connection is held during the TMDB call. This also
@@ -82,29 +64,49 @@ class PlaythroughService(
             }
 
             val correct = tmdbId == game.movies[position].id
-            val attemptNo = inRound.size + 1
+            val attemptNo = inRound.size + playthroughs.skips(locked.id, position) + 1
             val now = clock.instant()
             playthroughs.insertGuess(
                 locked.id, GuessRecord(position, attemptNo, tmdbId, guessed.title, guessed.releaseYear, correct), now,
             )
-
-            val outcome = when {
-                correct -> RoundStatus.SOLVED
-                attemptNo >= game.attemptsPerRound -> RoundStatus.FAILED
-                else -> RoundStatus.ACTIVE
-            }
-            if (outcome.ended) {
-                playthroughs.setRoundStatus(locked.id, position, outcome)
-                if (position + 1 < game.roundsPerGame) {
-                    playthroughs.setRoundStatus(locked.id, position + 1, RoundStatus.ACTIVE)
-                    playthroughs.setProgress(locked.id, PlaythroughStatus.IN_PROGRESS, position + 1, null)
-                } else {
-                    playthroughs.setProgress(locked.id, PlaythroughStatus.COMPLETE, position, now)
-                }
-            }
+            settle(locked.id, game, position, attemptNo, correct, now)
             locked.id
         }!!
         return view(id)
+    }
+
+    /** Gives up an attempt without guessing. Like a wrong guess it unlocks the next clue, and it can fail the round. */
+    suspend fun skip(playerId: UUID): Game {
+        val playthrough = activePlaythrough(playerId)
+        val id = tx.executeAndAwait {
+            val locked = playthroughs.lock(playthrough.id)
+            ensureInProgress(locked)
+            val game = games.findById(locked.gameId)!!
+            val position = locked.currentRound
+            val guesses = playthroughs.guesses(locked.id).count { it.position == position }
+            val attemptNo = guesses + playthroughs.skips(locked.id, position) + 1
+            playthroughs.addSkip(locked.id, position)
+            settle(locked.id, game, position, attemptNo, correct = false, now = clock.instant())
+            locked.id
+        }!!
+        return view(id)
+    }
+
+    /** Ends the round if the attempt solved it or was the last one, and moves the game on. */
+    private suspend fun settle(id: UUID, game: DailyGame, position: Int, attemptNo: Int, correct: Boolean, now: Instant) {
+        val outcome = when {
+            correct -> RoundStatus.SOLVED
+            attemptNo >= game.attemptsPerRound -> RoundStatus.FAILED
+            else -> RoundStatus.ACTIVE
+        }
+        if (!outcome.ended) return
+        playthroughs.setRoundStatus(id, position, outcome)
+        if (position + 1 < game.roundsPerGame) {
+            playthroughs.setRoundStatus(id, position + 1, RoundStatus.ACTIVE)
+            playthroughs.setProgress(id, PlaythroughStatus.IN_PROGRESS, position + 1, null)
+        } else {
+            playthroughs.setProgress(id, PlaythroughStatus.COMPLETE, position, now)
+        }
     }
 
     private suspend fun activePlaythrough(playerId: UUID): Playthrough {
@@ -129,7 +131,6 @@ class PlaythroughService(
             game = games.findById(playthrough.gameId)!!,
             rounds = playthroughs.rounds(playthroughId),
             guesses = playthroughs.guesses(playthroughId),
-            reveals = playthroughs.reveals(playthroughId),
         )
         return GameViewMapper.toApi(state)
     }

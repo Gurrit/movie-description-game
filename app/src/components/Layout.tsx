@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { isTokenPersistent } from '../features/player/token';
+import tmdbLogo from '../../resources/tmdb-logo.svg';
 import { ClapperIcon } from './ClapperIcon';
 
 const link = ({ isActive }: { isActive: boolean }) =>
@@ -37,6 +38,12 @@ export function Layout() {
       <main className="flex-1 py-5">
         <Outlet />
       </main>
+      <footer className="flex items-center gap-3 border-t border-slate-200 py-4 text-xs text-slate-500 dark:border-slate-800">
+        <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer" className="shrink-0">
+          <img src={tmdbLogo} alt="TMDB" className="h-3 w-auto" />
+        </a>
+        <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+      </footer>
     </div>
   );
 }

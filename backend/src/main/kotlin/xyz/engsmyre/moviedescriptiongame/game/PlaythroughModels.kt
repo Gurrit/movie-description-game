@@ -19,7 +19,8 @@ data class Playthrough(
     val currentRound: Int,
 )
 
-data class RoundState(val position: Int, val status: RoundStatus)
+/** [skips] are attempts given up without a guess. */
+data class RoundState(val position: Int, val status: RoundStatus, val skips: Int = 0)
 
 data class GuessRecord(
     val position: Int,
@@ -30,13 +31,10 @@ data class GuessRecord(
     val correct: Boolean,
 )
 
-data class RevealRecord(val position: Int, val clueId: String)
-
 /** Everything needed to render a playthrough. */
 data class PlaythroughState(
     val playthrough: Playthrough,
     val game: DailyGame,
     val rounds: List<RoundState>,
     val guesses: List<GuessRecord>,
-    val reveals: List<RevealRecord>,
 )

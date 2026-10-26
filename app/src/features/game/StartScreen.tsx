@@ -10,7 +10,7 @@ export function StartScreen() {
       <ClapperIcon className="mx-auto size-16" />
       <h2 className="text-3xl font-extrabold tracking-tight">Name that movie</h2>
       <p className="text-slate-600 dark:text-slate-300">
-        A new set of movies every day. Reveal clues, then guess each movie in a few attempts.
+        A new set of movies every day. You start with one clue, and every wrong guess unlocks the next.
       </p>
       <Button onClick={() => start.mutate()} disabled={start.isPending} className="w-full text-lg">
         {start.isPending ? 'Preparing today’s game…' : 'Play today’s game'}

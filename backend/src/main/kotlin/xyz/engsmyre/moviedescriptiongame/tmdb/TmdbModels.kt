@@ -21,6 +21,8 @@ data class TmdbMovieDetails(
     val runtimeMinutes: Int?,
     val posterPath: String?,
     val genres: List<String>,
+    /** Production companies in TMDB's order, the first being the main studio. */
+    val studios: List<String>,
     val cast: List<TmdbCastMember>,
     val crew: List<TmdbCrewMember>,
 )

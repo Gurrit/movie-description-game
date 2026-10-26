@@ -4,6 +4,7 @@
 #   docker compose --profile web up --build  # or: the production-like web image on http://localhost:8000
 services:
   postgres:
+    container_name: mdg-postgres
     image: postgres:17-alpine
     ports:
       - "5432:5432"
@@ -20,6 +21,7 @@ services:
       retries: 10
 
   backend:
+    container_name: mdg-backend
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -41,6 +43,7 @@ services:
       start_period: 20s
 
   web:
+    container_name: mdg-web
     profiles: ["web"]
     build:
       context: .

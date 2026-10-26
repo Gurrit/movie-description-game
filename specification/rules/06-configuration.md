@@ -5,7 +5,7 @@ Game parameters live in a config file (e.g. Spring `application.yml`, section `g
 ```yaml
 game:
   roundsPerGame: 7        # movies per daily set
-  attemptsPerRound: 3     # guesses per movie
+  attemptsPerRound: 7     # attempts per movie; one per clue, so the last attempt sees them all
 
 tmdb:
   apiKey: ${TMDB_API_KEY}

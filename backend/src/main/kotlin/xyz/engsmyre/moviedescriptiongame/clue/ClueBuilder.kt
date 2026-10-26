@@ -20,6 +20,7 @@ class ClueBuilder(private val props: RedactionProperties) {
         val year = d.releaseYear
         val runtime = d.runtimeMinutes
         val cast = d.cast.sortedBy { it.order }.take(CAST_SIZE)
+        val studio = d.studios.firstOrNull()
         val director = d.crew.firstOrNull { it.job == "Director" }
         val writer = WRITER_JOBS.firstNotNullOfOrNull { job -> d.crew.firstOrNull { it.job == job } }
 
@@ -31,15 +32,15 @@ class ClueBuilder(private val props: RedactionProperties) {
             runtime == null || runtime <= 0 -> return rejected("no runtime")
             d.genres.isEmpty() -> return rejected("no genres")
             cast.size < CAST_SIZE -> return rejected("fewer than $CAST_SIZE cast members")
+            studio == null -> return rejected("no studio")
             director == null -> return rejected("no director")
             writer == null -> return rejected("no writer")
         }
 
-        val people = cast.map { PersonClue(PersonRole.CAST, it.name, it.character?.takeIf(String::isNotBlank)) } +
-            PersonClue(PersonRole.DIRECTOR, director!!.name) +
-            PersonClue(PersonRole.WRITER, writer!!.name)
+        // Names only: a character's name would give away more than the actor does
+        val castNames = cast.map { it.name }
         val titles = listOf(d.title, d.originalTitle).filter { it.isNotBlank() }
-        val names = people.map { it.name }
+        val names = castNames + director!!.name + writer!!.name
 
         val plot = redactor.redact(overview, titles, names)
         if (plot.maskedRatio > props.maxMaskedRatio) {
@@ -50,13 +51,13 @@ class ClueBuilder(private val props: RedactionProperties) {
 
         return ClueResult.Built(
             listOf(
-                Clue("plot", ClueType.PLOT, 1, ClueContent(text = plot.text)),
-                Clue("tagline", ClueType.TAGLINE, 2, ClueContent(text = tag.text)),
-                Clue(
-                    "metadata", ClueType.METADATA, 3,
-                    ClueContent(genres = d.genres, runtimeMinutes = runtime, releaseYear = year),
-                ),
-                Clue("people", ClueType.PEOPLE, 4, ClueContent(people = people)),
+                Clue("metadata", ClueType.METADATA, 1, ClueContent(genres = d.genres, runtimeMinutes = runtime, releaseYear = year)),
+                Clue("writer", ClueType.WRITER, 2, ClueContent(names = listOf(writer.name))),
+                Clue("studio", ClueType.STUDIO, 3, ClueContent(names = listOf(studio))),
+                Clue("director", ClueType.DIRECTOR, 4, ClueContent(names = listOf(director.name))),
+                Clue("cast", ClueType.CAST, 5, ClueContent(names = castNames)),
+                Clue("tagline", ClueType.TAGLINE, 6, ClueContent(text = tag.text)),
+                Clue("plot", ClueType.PLOT, 7, ClueContent(text = plot.text)),
             )
         )
     }

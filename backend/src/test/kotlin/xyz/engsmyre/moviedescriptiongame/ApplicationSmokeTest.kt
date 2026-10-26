@@ -23,9 +23,9 @@ class ApplicationSmokeTest(
     fun `migrations create the schema`() = runTest {
         val tables = db.sql(
             "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN " +
-                "('player','movie','game','daily_game','game_movie','playthrough','playthrough_round','guess','revealed_clue')"
+                "('player','movie','game','daily_game','game_movie','playthrough','playthrough_round','guess')"
         ).map { row -> row.get(0, java.lang.Long::class.java)!!.toLong() }.one().awaitSingle()
-        assertEquals(9L, tables)
+        assertEquals(8L, tables)
     }
 
     @Test

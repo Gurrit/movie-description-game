@@ -47,16 +47,29 @@ export function useStartGame() {
   return useGameMutation<void>(() => api.POST('/game/today'));
 }
 
-export function useRevealClue() {
-  return useGameMutation<string>((clueId) =>
-    api.POST('/game/today/rounds/current/clues/{clueId}/reveal', { params: { path: { clueId } } }),
-  );
-}
-
 export function useSubmitGuess() {
   return useGameMutation<number>((tmdbId) =>
     api.POST('/game/today/rounds/current/guesses', { body: { tmdbId } }),
   );
+}
+
+/** Gives up an attempt without a guess; the next clue unlocks, as after a wrong guess. */
+export function useSkipClue() {
+  return useGameMutation<void>(() => api.POST('/game/today/rounds/current/skip'));
+}
+
+/** A random movie to try as a guess, other than the [excluded] ones (already guessed in the round). */
+export function useRandomMovie() {
+  return useMutation({
+    mutationFn: async (excluded: ReadonlySet<number>): Promise<MovieSuggestion> => {
+      let movie = unwrap(await api.GET('/movies/random'));
+      // Pool pages are large, so a repeat is rare; a few retries are plenty
+      for (let tries = 0; excluded.has(movie.tmdbId) && tries < 5; tries++) {
+        movie = unwrap(await api.GET('/movies/random'));
+      }
+      return movie;
+    },
+  });
 }
 
 export const MIN_SEARCH_LENGTH = 2;

@@ -3,20 +3,22 @@ import { ATTEMPTS, closeDb, guess, ROUNDS, startGame, titleOf, todaysAnswers, wr
 
 test.afterAll(closeDb);
 
-test('plays a whole game: reveal, wrong guess, solve, fail, summary, stats', async ({ page }) => {
+test('plays a whole game: wrong guess, solve, fail, summary, stats', async ({ page }) => {
   await startGame(page);
   const answers = await todaysAnswers();
   expect(answers).toHaveLength(ROUNDS);
   const wrong = wrongIds(answers, 3);
 
-  // Round 1: clues start hidden; revealing is free
+  // Round 1: only the details are shown; every wrong guess unlocks the next clue
+  await expect(page.getByText('Drama')).toBeVisible();
+  await expect(page.getByText(/Wally Writer/)).toBeHidden();
   await expect(page.getByText('A story about a man')).toBeHidden();
-  await page.getByRole('button', { name: 'Reveal plot' }).click();
-  await expect(page.getByText('A story about a man')).toBeVisible();
   await expect(page.getByText(`${ATTEMPTS} attempts left`)).toBeVisible();
 
   await guess(page, wrong[0]!);
   await expect(page.getByText('1 attempt left')).toBeVisible();
+  await expect(page.getByText(/Wally Writer/)).toBeVisible();
+  await expect(page.getByText(/Dora Director/)).toBeHidden();
   await expect(page.getByRole('list', { name: 'Your wrong guesses' })).toContainText(titleOf(wrong[0]!));
 
   await guess(page, answers[0]!);
@@ -56,18 +58,33 @@ test('plays a whole game: reveal, wrong guess, solve, fail, summary, stats', asy
   await expect(stats.getByText('Movies solved').locator('xpath=preceding-sibling::dd')).toHaveText('2');
 });
 
+test('skip unlocks the next clue and random fills the guess box', async ({ page }) => {
+  await startGame(page);
+  await expect(page.getByText(/Wally Writer/)).toBeHidden();
+
+  await page.getByRole('button', { name: 'Skip clue' }).click();
+  await expect(page.getByText('1 attempt left')).toBeVisible();
+  await expect(page.getByText(/Wally Writer/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Random' }).click();
+  await expect(page.getByRole('combobox')).toHaveValue(/^Movie \d+ Title/);
+  await expect(page.getByRole('button', { name: 'Guess' })).toBeVisible();
+  await page.getByRole('button', { name: 'Guess' }).click();
+  // either the random pick was the answer, or the round (2 attempts) is over
+  await expect(page.getByRole('region', { name: 'Round result' })).toBeVisible();
+});
+
 test('resumes mid-game after a reload', async ({ page }) => {
   await startGame(page);
   const answers = await todaysAnswers();
-  await page.getByRole('button', { name: 'Reveal tagline' }).click();
-  await expect(page.getByText('Every journey ends somewhere')).toBeVisible();
   await guess(page, wrongIds(answers, 1)[0]!);
   await expect(page.getByText('1 attempt left')).toBeVisible();
 
   await page.reload();
 
   await expect(page.getByText(`Movie 1 of ${ROUNDS}`)).toBeVisible();
-  await expect(page.getByText('Every journey ends somewhere')).toBeVisible();
+  await expect(page.getByText(/Wally Writer/)).toBeVisible();
+  await expect(page.getByText('A story about a man')).toBeHidden();
   await expect(page.getByText('1 attempt left')).toBeVisible();
   await expect(page.getByRole('region', { name: 'Round result' })).toHaveCount(0);
 });

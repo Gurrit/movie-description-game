@@ -10,7 +10,7 @@ function setup(guessed: number[] = []) {
   const backend = createFakeBackend();
   server.use(...backend.handlers);
   const onGuess = vi.fn();
-  renderWithQuery(<GuessInput guessedIds={new Set(guessed)} onGuess={onGuess} />);
+  renderWithQuery(<GuessInput guessedIds={new Set(guessed)} onGuess={onGuess} onSkip={() => {}} />);
   return { backend, onGuess, user: userEvent.setup() };
 }
 

@@ -1,6 +1,6 @@
 # Movie Description Game
 
-A daily game: every UTC day there is one game (a set of movies, default 7, the same for every player). A player reveals clues (plot, tagline, details, people) and names each movie within a few attempts (default 3). Personal stats only; no scoring, no accounts.
+A daily game: every UTC day there is one game (a set of movies, default 7, the same for every player). A player starts each movie with one clue and every wrong guess unlocks the next (details, writer, studio, director, top billing, tagline, plot), or skip to the next clue at the cost of an attempt (default 7 attempts, one per clue). Personal stats only; no scoring, no accounts.
 
 **The specification is the source of truth for behaviour and design. Read it before changing anything non-trivial:**
 - `specification/rules/` is what the game does (rules, clues, TMDB selection, players, config).
@@ -36,7 +36,7 @@ Run the relevant tests before finishing. The backend and frontend tests are quic
 
 **Contract first.** Change `api/openapi.yaml` first, then the code. Backend interfaces and models are generated into `backend/build/generated` and the frontend's `app/src/api/schema.d.ts` is generated and git-ignored: never edit generated code. Every response in the backend integration test is validated against the spec, so drift fails the build. Responses omit `null` fields (`default-property-inclusion: non_null`) and the contract relies on it.
 
-**The server is authoritative.** The answer and the content of unrevealed clues must never reach the client early. `game/GameViewMapper` is the only place that decides what a player may see; keep it that way. The frontend has no game rules, it renders what the API returns.
+**The server is authoritative.** The answer and the content of locked clues must never reach the client early. `game/GameViewMapper` is the only place that decides what a player may see; keep it that way. The frontend has no game rules, it renders what the API returns.
 
 **Backend style.**
 - `suspend` functions, no blocking calls on the event loop. Feature packages (`game`, `challenge`, `player`, `clue`, `tmdb`, `stats`, `movie`), not technical layers.

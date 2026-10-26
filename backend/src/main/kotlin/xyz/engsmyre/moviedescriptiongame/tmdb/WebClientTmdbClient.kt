@@ -64,6 +64,7 @@ class WebClientTmdbClient(
             runtimeMinutes = dto.runtime,
             posterPath = dto.posterPath,
             genres = dto.genres.mapNotNull { it.name },
+            studios = dto.productionCompanies.mapNotNull { it.name?.takeIf(String::isNotBlank) },
             cast = dto.credits?.cast.orEmpty().map { TmdbCastMember(it.name, it.character, it.order) },
             crew = dto.credits?.crew.orEmpty().map { TmdbCrewMember(it.name, it.job.orEmpty()) },
         )
@@ -147,6 +148,7 @@ class WebClientTmdbClient(
         val runtime: Int? = null,
         @JsonProperty("poster_path") val posterPath: String? = null,
         val genres: List<GenreDto> = emptyList(),
+        @JsonProperty("production_companies") val productionCompanies: List<GenreDto> = emptyList(),
         val credits: CreditsDto? = null,
     )
 

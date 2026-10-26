@@ -7,14 +7,14 @@ import xyz.engsmyre.moviedescriptiongame.api.model.ClueType
 import xyz.engsmyre.moviedescriptiongame.api.model.Game
 import xyz.engsmyre.moviedescriptiongame.api.model.GameStatus
 import xyz.engsmyre.moviedescriptiongame.api.model.GuessResult
-import xyz.engsmyre.moviedescriptiongame.api.model.PersonClue
 import xyz.engsmyre.moviedescriptiongame.api.model.Round
 import xyz.engsmyre.moviedescriptiongame.clue.ClueContent as StoredContent
 import xyz.engsmyre.moviedescriptiongame.api.model.RoundStatus as ApiRoundStatus
 
 /**
- * The only place that decides what a player may see. Content of a clue is exposed only when the player
- * revealed it or the round has ended; the answer only when the round has ended; future rounds are blank.
+ * The only place that decides what a player may see. A round starts with its first clue; every wrong
+ * guess or skip unlocks the next one, and an ended round shows all of them. The answer is exposed only when the
+ * round has ended; future rounds are blank.
  */
 object GameViewMapper {
 
@@ -35,23 +35,25 @@ object GameViewMapper {
     private fun round(state: PlaythroughState, round: RoundState): Round {
         val movie = state.game.movies[round.position]
         val guesses = state.guesses.filter { it.position == round.position }
+        val attemptsUsed = guesses.size + round.skips
         if (round.status == RoundStatus.PENDING) {
             return Round(round.position, ApiRoundStatus.PENDING, 0, emptyList(), emptyList())
         }
-        val revealed = state.reveals.filter { it.position == round.position }.map { it.clueId }.toSet()
+        // Every attempt of a round that is still going is a wrong guess or a skip, and each unlocks one more clue
+        val unlocked = attemptsUsed + 1
         return Round(
             index = round.position,
             status = ApiRoundStatus.valueOf(round.status.name),
-            attemptsUsed = guesses.size,
+            attemptsUsed = attemptsUsed,
             guesses = guesses.map { GuessResult(it.tmdbId, it.title, it.correct, it.releaseYear) },
             clues = movie.clues.sortedBy { it.order }.map { clue ->
-                val isRevealed = clue.id in revealed
+                val isUnlocked = round.status.ended || clue.order <= unlocked
                 Clue(
                     id = clue.id,
                     type = ClueType.valueOf(clue.type.name),
                     order = clue.order,
-                    revealed = isRevealed,
-                    content = if (isRevealed || round.status.ended) content(clue.content) else null,
+                    revealed = isUnlocked,
+                    content = if (isUnlocked) content(clue.content) else null,
                 )
             },
             answer = if (round.status.ended) Answer(movie.id, movie.title, movie.releaseYear, movie.posterPath) else null,
@@ -62,7 +64,8 @@ object GameViewMapper {
         text = c.text,
         genres = c.genres,
         runtimeMinutes = c.runtimeMinutes,
-        releaseYear = c.releaseYear,
-        people = c.people?.map { PersonClue(PersonClue.Role.valueOf(it.role.name), it.name, it.character) },
+        // The stored clue has the exact year; a player only gets the decade
+        decade = c.releaseYear?.let { it / 10 * 10 },
+        names = c.names,
     )
 }

@@ -40,5 +40,6 @@ Use `GET /discover/movie` with:
 - Poster images are referenced by TMDB path (`poster_path`) and the client builds the URL from the TMDB image base. No images are stored.
 
 ## Autocomplete
+- `GET /movies/random` serves the Random button: a random movie from a random page of the same discover pool (pages cached for an hour), also behind a player token and the search rate limit.
 - `GET /movies/search?q=` is proxied through the backend (`/search/movie`), which keeps the API key off the client. It returns `{tmdbId, title, year}` for up to 10 results, debounce on the client (≥250 ms), min 2 chars. It requires a valid player token and is rate limited.
 - Search results are not restricted to the candidate pool: any movie can be guessed.

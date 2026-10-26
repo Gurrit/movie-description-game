@@ -15,21 +15,27 @@ class ClueBuilderTest {
     private fun reason(result: ClueResult) = (result as? ClueResult.Rejected)?.reason ?: error("expected Rejected")
 
     @Test
-    fun `builds the four clues in order`() {
+    fun `builds the seven clues in unlock order`() {
         val clues = built(builder.build(Fixtures.details(7)))
-        assertEquals(listOf("plot", "tagline", "metadata", "people"), clues.map { it.id })
-        assertEquals(listOf(1, 2, 3, 4), clues.map { it.order })
-        assertEquals(listOf(ClueType.PLOT, ClueType.TAGLINE, ClueType.METADATA, ClueType.PEOPLE), clues.map { it.type })
+        assertEquals(listOf("metadata", "writer", "studio", "director", "cast", "tagline", "plot"), clues.map { it.id })
+        assertEquals(listOf(1, 2, 3, 4, 5, 6, 7), clues.map { it.order })
+        assertEquals(
+            listOf(ClueType.METADATA, ClueType.WRITER, ClueType.STUDIO, ClueType.DIRECTOR, ClueType.CAST, ClueType.TAGLINE, ClueType.PLOT),
+            clues.map { it.type },
+        )
     }
 
     @Test
-    fun `people clue has three cast members, director and writer`() {
-        val people = built(builder.build(Fixtures.details(7))).single { it.type == ClueType.PEOPLE }.content.people!!
-        assertEquals(listOf(PersonRole.CAST, PersonRole.CAST, PersonRole.CAST, PersonRole.DIRECTOR, PersonRole.WRITER), people.map { it.role })
-        assertEquals("Alice Actor7", people[0].name)
-        assertEquals("Hero", people[0].character)
-        assertEquals("Dora Director7", people[3].name)
-        assertEquals("Wally Writer7", people[4].name)
+    fun `writer director and cast clues carry names only`() {
+        val clues = built(builder.build(Fixtures.details(7)))
+        fun names(type: ClueType) = clues.single { it.type == type }.content.names
+        assertEquals(listOf("Wally Writer7"), names(ClueType.WRITER))
+        assertEquals(listOf("Studio 7 Pictures"), names(ClueType.STUDIO), "the first production company")
+        assertEquals(listOf("Dora Director7"), names(ClueType.DIRECTOR))
+        // the three top-billed actors; no characters (Hero, Sidekick, Villain) anywhere
+        assertEquals(listOf("Alice Actor7", "Bob Actor7", "Carol Actor7"), names(ClueType.CAST))
+        val everything = clues.joinToString { it.content.toString() }
+        for (character in listOf("Hero", "Sidekick", "Villain", "Bystander")) assertFalse(everything.contains(character), everything)
     }
 
     @Test
@@ -42,7 +48,7 @@ class ClueBuilderTest {
     }
 
     @Test
-    fun `plot hides the title and the cast and crew names`() {
+    fun `plot hides the title and the names of cast and crew`() {
         val d = Fixtures.details(
             7, title = "Zorblax",
             overview = "Zorblax follows Dora Director7 and Alice Actor7 across a wide and lonely desert, hoping to find water before the long winter arrives.",
@@ -57,8 +63,8 @@ class ClueBuilderTest {
     @Test
     fun `writer falls back through Screenplay Writer Story`() {
         val d = Fixtures.details(7, crew = listOf(TmdbCrewMember("D Dir", "Director"), TmdbCrewMember("S Story", "Story"), TmdbCrewMember("W Writ", "Writer")))
-        val people = built(builder.build(d)).single { it.type == ClueType.PEOPLE }.content.people!!
-        assertEquals("W Writ", people.last().name)
+        val writer = built(builder.build(d)).single { it.type == ClueType.WRITER }.content.names
+        assertEquals(listOf("W Writ"), writer)
     }
 
     @Test
@@ -66,6 +72,7 @@ class ClueBuilderTest {
         assertEquals("no overview", reason(builder.build(Fixtures.details(1, overview = " "))))
         assertEquals("no tagline", reason(builder.build(Fixtures.details(1, tagline = null))))
         assertEquals("fewer than 3 cast members", reason(builder.build(Fixtures.details(1, cast = emptyList()))))
+        assertEquals("no studio", reason(builder.build(Fixtures.details(1, studios = emptyList()))))
         assertEquals("no director", reason(builder.build(Fixtures.details(1, crew = listOf(TmdbCrewMember("W", "Writer"))))))
         assertEquals("no writer", reason(builder.build(Fixtures.details(1, crew = listOf(TmdbCrewMember("D", "Director"))))))
     }

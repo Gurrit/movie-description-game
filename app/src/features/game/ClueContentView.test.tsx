@@ -18,39 +18,27 @@ describe('ClueContentView', () => {
     expect(screen.getByText('A ### story')).toBeInTheDocument();
   });
 
-  it('renders metadata as genres, year and runtime', () => {
+  it('renders metadata as genres, decade and runtime', () => {
     render(
       <ClueContentView
         clue={clue({
           type: 'METADATA',
-          content: { genres: ['Drama', 'Crime'], releaseYear: 1972, runtimeMinutes: 175 },
+          content: { genres: ['Drama', 'Crime'], decade: 1970, runtimeMinutes: 175 },
         })}
       />,
     );
     expect(screen.getByText('Drama')).toBeInTheDocument();
     expect(screen.getByText('Crime')).toBeInTheDocument();
-    expect(screen.getByText('1972 · 175 min')).toBeInTheDocument();
+    expect(screen.getByText('1970s · 175 min')).toBeInTheDocument();
   });
 
-  it('renders people grouped by role', () => {
-    render(
-      <ClueContentView
-        clue={clue({
-          type: 'PEOPLE',
-          content: {
-            people: [
-              { role: 'CAST', name: 'Al Pacino', character: 'Michael' },
-              { role: 'CAST', name: 'James Caan' },
-              { role: 'DIRECTOR', name: 'Francis Coppola' },
-              { role: 'WRITER', name: 'Mario Puzo' },
-            ],
-          },
-        })}
-      />,
-    );
-    expect(screen.getByText('Al Pacino (as Michael), James Caan')).toBeInTheDocument();
-    expect(screen.getByText('Francis Coppola')).toBeInTheDocument();
-    expect(screen.getByText('Mario Puzo')).toBeInTheDocument();
+  it.each([
+    ['WRITER', ['Mario Puzo'], 'Mario Puzo'],
+    ['DIRECTOR', ['Francis Coppola'], 'Francis Coppola'],
+    ['CAST', ['Al Pacino', 'James Caan', 'Robert Duvall'], 'Al Pacino, James Caan, Robert Duvall'],
+  ] as const)('renders the names of a %s clue', (type, names, text) => {
+    render(<ClueContentView clue={clue({ type, content: { names: [...names] } })} />);
+    expect(screen.getByText(text)).toBeInTheDocument();
   });
 
   it('shows the text of an unknown clue type', () => {

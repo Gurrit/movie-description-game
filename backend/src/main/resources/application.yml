@@ -1,5 +1,7 @@
 server:
   port: 8080
+  # Behind Caddy the client address comes from X-Forwarded-For; the rate limiter needs it
+  forward-headers-strategy: framework
 
 spring:
   application:
@@ -35,7 +37,8 @@ management:
 
 game:
   rounds-per-game: 7
-  attempts-per-round: 3
+  # One per clue, so the last attempt is made with every clue unlocked
+  attempts-per-round: 7
 
 tmdb:
   base-url: ${TMDB_BASE_URL:https://api.themoviedb.org/3}

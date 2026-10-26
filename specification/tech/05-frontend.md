@@ -28,7 +28,7 @@ app/src/
 
 ## Server state with TanStack Query
 - The **server is the only source of truth** for game state. The client has no game rules (attempt counting, correctness, round advance): it renders what the API returns.
-- `useTodaysGame()` returns the game, or `null` for 404 `GAME_NOT_STARTED` (which shows the start screen). `useStartGame`, `useRevealClue` and `useSubmitGuess` are mutations that write the returned `Game` into the cache with `setQueryData`; a 409 invalidates the game query so the real state is shown.
+- `useTodaysGame()` returns the game, or `null` for 404 `GAME_NOT_STARTED` (which shows the start screen). `useStartGame`, `useSubmitGuess` and `useSkipClue` are mutations that write the returned `Game` into the cache with `setQueryData`; a 409 invalidates the game query so the real state is shown.
 - The only game-related client state is `ActiveGame`'s count of *ended rounds already looked at*. When a guess ends a round, the API already moves the game on, so the result screen of the ended round is shown until the player presses Next. It is initialised from the loaded game, so a reload never replays old results and a finished game opens on the summary.
 - Autocomplete: `useMovieSearch` (min 2 characters, 250 ms debounce, `keepPreviousData`, 10 minute stale time); movies already guessed in the round are shown but cannot be picked.
 - Retry policy: queries retry twice on 5xx/network errors and never on 4xx; mutations do not retry.
@@ -39,10 +39,12 @@ Clean, Wordle-like, mobile-first. The layout is a **narrow centred column** (`ma
 
 - **Palette:** neutral slate, with green (solved), red (failed / used attempt) and amber (current movie) as the only colours. The primary button is the dark/light inverse of the page; light and dark themes follow the OS. System font stack, no web fonts.
 - **Progress:** one numbered square per movie, coloured by round status (`ProgressSquares`). Attempts are squares too: used ones filled red, remaining ones outlined (`AttemptSquares`), next to the text "2 attempts left".
-- **Clues:** stacked cards. An unrevealed clue is a dashed, full-width button (min height 64px) labelled "Tap to reveal", with the accessible name "Reveal plot" etc.; a revealed one is a solid card that fades in (skipped for `prefers-reduced-motion`). The `▇▇▇` redaction mask renders as-is.
+- **Clues:** stacked cards. A locked clue is a dashed, muted card (min height 64px) with its label and "Locked"; there is nothing to tap, a wrong guess unlocks the next one. An unlocked one is a solid card that fades in (skipped for `prefers-reduced-motion`). The `▇▇▇` redaction mask renders as-is.
+- **Skip and Random:** under the guess box, two secondary buttons. "Skip clue" ("Give up" on the last attempt, where it ends the round) unlocks the next clue at the cost of an attempt. "Random" fills the box with a random movie from `GET /movies/random` and shows a "Guess" button to confirm it; typing replaces the pick, and a pick already guessed in the round is re-rolled (`useRandomMovie`).
 - **Guess box and Next button:** pinned to the bottom of the screen on phones (`BottomBar`, respects the safe area) and inline from the `sm` breakpoint up. The input uses 16px text (prevents iOS focus-zoom) and the suggestion list opens **upward** on phones so the keyboard does not cover it. Suggestion rows are at least 48px high.
 - **Round end:** a full-width green or red banner with the poster and title, then all four clues, then the Next button. The summary shows the score and one row per movie (square, title, attempts), plus a countdown to the next UTC midnight.
 - **Icon:** the clapperboard is an inline SVG. Emoji are avoided because rendering depends on the device's emoji font.
+- **TMDB attribution:** the TMDB logo (`app/resources/tmdb-logo.svg`) and the required notice sit in the page footer (`Layout`), small and secondary to the game's own identity, as TMDB's terms ask. The gradient logo reads on both themes.
 - Poster URL base is a build-time constant (`VITE_TMDB_IMAGE_BASE`), not fetched at runtime.
 - Not yet done: a real name, logo and favicon (the title is a placeholder); sharing results.
 

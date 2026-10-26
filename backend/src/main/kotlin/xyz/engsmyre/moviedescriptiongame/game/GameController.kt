@@ -19,8 +19,8 @@ class GameController(private val service: PlaythroughService) : GameApi {
         return ResponseEntity.status(if (started.created) HttpStatus.CREATED else HttpStatus.OK).body(started.game)
     }
 
-    override suspend fun revealClue(clueId: String): ResponseEntity<Game> =
-        ResponseEntity.ok(service.reveal(currentPlayerId(), clueId))
+    override suspend fun skipClue(): ResponseEntity<Game> =
+        ResponseEntity.ok(service.skip(currentPlayerId()))
 
     override suspend fun submitGuess(guessRequest: GuessRequest): ResponseEntity<Game> =
         ResponseEntity.ok(service.guess(currentPlayerId(), guessRequest.tmdbId))

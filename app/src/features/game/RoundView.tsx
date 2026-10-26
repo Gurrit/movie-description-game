@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useRevealClue, useSubmitGuess } from '../../api/queries';
+import { useSkipClue, useSubmitGuess } from '../../api/queries';
 import type { Game, Round } from '../../api/types';
 import { BottomBar } from '../../components/BottomBar';
 import { ErrorMessage } from '../../components/ErrorMessage';
@@ -8,10 +8,10 @@ import { ClueList } from './ClueList';
 import { GuessInput } from './GuessInput';
 import { ProgressSquares } from './ProgressSquares';
 
-/** The active round: clues to reveal, previous wrong guesses, and the guess box. */
+/** The active round: the clues unlocked so far, previous wrong guesses, and the guess box with its skip and random buttons. */
 export function RoundView({ game, round }: { game: Game; round: Round }) {
-  const reveal = useRevealClue();
   const guess = useSubmitGuess();
+  const skip = useSkipClue();
   const [lastGuess, setLastGuess] = useState<string | null>(null);
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.tmdbId)), [round.guesses]);
 
@@ -27,12 +27,7 @@ export function RoundView({ game, round }: { game: Game; round: Round }) {
         </h2>
       </div>
 
-      <ClueList
-        clues={round.clues}
-        revealing={reveal.isPending ? reveal.variables : null}
-        onReveal={(clueId) => reveal.mutate(clueId)}
-      />
-      {reveal.isError && <ErrorMessage error={reveal.error} />}
+      <ClueList clues={round.clues} />
 
       <div className="space-y-3">
         <AttemptSquares allowed={game.attemptsPerRound} used={round.attemptsUsed} />
@@ -51,12 +46,15 @@ export function RoundView({ game, round }: { game: Game; round: Round }) {
         )}
         {guess.isPending && <p className="text-sm text-slate-500">Checking {lastGuess}…</p>}
         {guess.isError && <ErrorMessage error={guess.error} />}
+        {skip.isError && <ErrorMessage error={skip.error} />}
       </div>
 
       <BottomBar>
         <GuessInput
           guessedIds={guessedIds}
-          disabled={guess.isPending}
+          disabled={guess.isPending || skip.isPending}
+          lastAttempt={round.attemptsUsed + 1 >= game.attemptsPerRound}
+          onSkip={() => skip.mutate()}
           onGuess={(movie) => {
             setLastGuess(movie.title);
             guess.mutate(movie.tmdbId);

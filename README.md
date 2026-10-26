@@ -1,6 +1,6 @@
 # Movie Description Game
 
-A daily game: every day there is a new set of movies. Reveal clues (plot, tagline, details, people), then name each movie in a few attempts.
+A daily game: every day there is a new set of movies. Each movie starts with one clue, and every wrong guess unlocks the next (details, writer, studio, director, top billing, tagline, plot); a clue can also be skipped at the cost of an attempt.
 
 Kotlin / Spring Boot (WebFlux) + PostgreSQL backend, React + TypeScript frontend, one OpenAPI contract in `api/openapi.yaml`.
 The functional and technical specification is in [`specification/`](specification/README.md).

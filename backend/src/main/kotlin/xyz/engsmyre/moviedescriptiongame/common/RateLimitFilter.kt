@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Per-IP fixed-window limiter for the two endpoints open to abuse: creating players and TMDB search.
+ * Per-IP fixed-window limiter for the two endpoints open to abuse: creating players and TMDB search (and random picks, which cost TMDB calls too).
  * In-process, which is enough for a single instance; behind a proxy the client IP comes from X-Forwarded-For.
  */
 @Component
@@ -47,7 +47,7 @@ class RateLimitFilter(
         val path = exchange.request.uri.path
         return when {
             path == "/api/players" && exchange.request.method == HttpMethod.POST -> "players" to props.playersPerMinute
-            path == "/api/movies/search" -> "search" to props.searchPerMinute
+            path == "/api/movies/search" || path == "/api/movies/random" -> "search" to props.searchPerMinute
             else -> null
         }
     }

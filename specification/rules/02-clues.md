@@ -1,43 +1,53 @@
 # Clues
 
-## Clue types (initial)
-All content comes from TMDB (`/movie/{id}` and `/movie/{id}/credits`). Each type is a *generic clue definition*; the UI lists them in this order but the player chooses freely.
+## Clue types
+All content comes from TMDB (`/movie/{id}` with credits). The clues of a round unlock one at a time, in this order: the first is shown from the start, each wrong guess unlocks the next (see [01-game-rules.md](01-game-rules.md#round)).
 
-| # | Type key | Content | Source |
-|---|---|---|---|
-| 1 | `PLOT` | Plot overview, spoiler-redacted | `overview` |
-| 2 | `TAGLINE` | Tagline, redacted | `tagline` |
-| 3 | `METADATA` | Genres, runtime, release year | `genres`, `runtime`, `release_date` |
-| 4 | `PEOPLE` | The 3 first-billed cast members, the director and the writer (see below) | credits |
+| # | Type key | Id | Content | Source |
+|---|---|---|---|---|
+| 1 | `METADATA` | `metadata` | Genres, runtime, release **decade** (shown as "Details") | `genres`, `runtime`, `release_date` |
+| 2 | `WRITER` | `writer` | The writer's name | credits |
+| 3 | `STUDIO` | `studio` | The main production company | `production_companies[0]` |
+| 4 | `DIRECTOR` | `director` | The director's name | credits |
+| 5 | `CAST` | `cast` | The 3 first-billed actors (shown as "Top billing") | credits |
+| 6 | `TAGLINE` | `tagline` | Tagline, redacted | `tagline` |
+| 7 | `PLOT` | `plot` | Plot overview, spoiler-redacted | `overview` |
 
-### PEOPLE details
-- Cast: first 3 by `order` in credits (name and character).
+### Studio
+- The first of TMDB's `production_companies`, as a single name.
+
+### Details
+- The stored clue keeps the exact release year, but the API only exposes the **decade** (`decade: 1990` is shown as "1990s"). The exact year would narrow the movie down too much for the first clue. `GameViewMapper` does the conversion.
+
+### People
+- Cast: first 3 by `order` in credits. **Only the actors' names are used, never the characters they play**: a character name often gives the movie away.
 - Director: crew with `job == "Director"` (first one if several).
 - Writer: crew with `job` in (`Screenplay`, `Writer`, `Story`), in that preference order (first one).
-- This clue is made of **multiple items** (3 cast, director, writer). For the initial version, the whole PEOPLE clue is revealed in one go. The model must nonetheless represent clues as a list of items so that per-item reveals (one actor at a time) can be added later.
+- Each is its own clue with a list of `names` (one name for writer and director, three for the cast).
 
 ## Generic clue model
 ```
 Clue {
-  id:        stable id within the round, e.g. "plot", "people.cast.0"
-  type:      PLOT | TAGLINE | METADATA | PEOPLE | ...   (open enum)
-  order:     display order
-  content:   type-specific payload, built at generation time and stored with the challenge
+  id:        stable id within the round, e.g. "plot"
+  type:      METADATA | WRITER | STUDIO | DIRECTOR | CAST | TAGLINE | PLOT | ...   (open enum)
+  order:     position in the unlock order, starting at 1
+  content:   type-specific payload, built at generation time and stored with the movie
 }
-RevealedClue { clueId, revealedAt, attemptsUsedAtReveal }
 ```
-- Clues are **generated once when the challenge is created** and stored. They are never recomputed from TMDB at play time.
-- The *reveal policy* (who may reveal what, and when) is isolated in a single component. Today the policy is "any clue, any time, free". Alternatives to remain easy to implement: "next clue revealed automatically per wrong attempt", "reveal costs an attempt".
-- Clients ask to reveal a clue by id. The server returns the content, and records it.
-- Rounds returned to clients list unrevealed clues only as `{id, type, order}` (a label and no content).
+- Clues are **generated once when the movie is first used** and stored. They are never recomputed from TMDB at play time.
+- `order` is both the display order and the unlock order. A clue is unlocked when `order <= attempts in the round (wrong guesses and skips) + 1`, or when the round has ended. This rule lives in `GameViewMapper`, the only place that decides what a player may see.
+- Rounds returned to clients list every clue as `{id, type, order, revealed}`; `content` is present only for unlocked clues, so locked ones are just a label.
+- To change the order or add a clue type, change the order in `ClueBuilder`, and set `attemptsPerRound` to match the number of clues.
 
 ## Redaction (spoiler stripping)
 Applied to `PLOT` and `TAGLINE` at generation time:
 - Mask every occurrence of each token of the movie title (and original title) with `▇▇▇` (length-preserving not required), case- and punctuation-insensitive. Ignore trivial stopwords (`the`, `a`, `of`, ...) when masking, so "The" is not blanked everywhere. Also mask the full title as a phrase.
-- Mask the name (full name and each name part longer than 2 chars) of every person in the PEOPLE clue, so the overview cannot give away the cast/director before the player reveals them.
+- Also mask the names of the writer, director and top-billed cast.
 - Franchise/sequel numbers are not specially handled.
 - Edge case: if after redaction more than `redaction.maxMaskedRatio` (default 0.35) of the overview's words are masked, the movie is rejected during generation and another is drawn.
-- `METADATA` and `PEOPLE` contain no redaction (they never contain the title).
+- The other clues contain no redaction (they never contain the title).
 
 ## Required data
-A movie is only eligible when it has: non-empty overview, non-empty tagline, at least 3 cast, a director and a writer.
+A movie is only eligible when it has: non-empty overview, non-empty tagline, at least 3 cast, a director, a writer and a production company.
+
+Movies stored before the studio clue existed keep their six clues; the rule above works on `order`, so they play fine.

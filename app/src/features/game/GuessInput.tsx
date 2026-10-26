@@ -1,21 +1,35 @@
 import { useId, useState } from 'react';
-import { MIN_SEARCH_LENGTH, useMovieSearch } from '../../api/queries';
+import { MIN_SEARCH_LENGTH, useMovieSearch, useRandomMovie } from '../../api/queries';
 import type { MovieSuggestion } from '../../api/types';
 import { errorText } from '../../components/ErrorMessage';
 import { useDebouncedValue } from './useDebouncedValue';
 
 export const SEARCH_DEBOUNCE_MS = 250;
 
+const SECONDARY =
+  'min-h-11 rounded-lg border-2 border-slate-300 px-4 text-sm font-bold hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-800';
+
 type Props = {
   /** TMDB ids already guessed in this round; they cannot be picked again. */
   guessedIds: ReadonlySet<number>;
   disabled?: boolean;
+  /** True when the next attempt is the last one: skipping it then ends the round. */
+  lastAttempt?: boolean;
   onGuess: (movie: MovieSuggestion) => void;
+  onSkip: () => void;
 };
 
-/** Movie title autocomplete following the ARIA combobox pattern. A guess is always a picked movie. */
-export function GuessInput({ guessedIds, disabled = false, onGuess }: Props) {
+const label = (movie: MovieSuggestion) => (movie.year != null ? `${movie.title} (${movie.year})` : movie.title);
+
+/**
+ * Movie title autocomplete following the ARIA combobox pattern. A guess is always a picked movie:
+ * either chosen from the suggestions (which guesses at once) or filled in by "Random", which waits
+ * for a confirmation. "Skip" gives up the attempt to unlock the next clue.
+ */
+export function GuessInput({ guessedIds, disabled = false, lastAttempt = false, onGuess, onSkip }: Props) {
   const [text, setText] = useState('');
+  const [random, setRandom] = useState<MovieSuggestion | null>(null);
+  const randomMovie = useRandomMovie();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const listId = useId();
@@ -26,24 +40,39 @@ export function GuessInput({ guessedIds, disabled = false, onGuess }: Props) {
   const search = useMovieSearch(query);
   const results = searching ? (search.data ?? []) : [];
   const showList = open && text.trim().length >= MIN_SEARCH_LENGTH;
+  // The results belong to the debounced query; until it catches up with the text, Enter must not pick from them
+  const settled = query === text.trim();
 
   const pick = (movie: MovieSuggestion) => {
     if (disabled || guessedIds.has(movie.tmdbId)) return;
     setText('');
+    setRandom(null);
     setOpen(false);
     setActive(0);
     onGuess(movie);
   };
 
+  const rollRandom = () =>
+    randomMovie.mutate(guessedIds, {
+      onSuccess: (movie) => {
+        setText(label(movie));
+        setRandom(movie);
+        setOpen(false);
+      },
+    });
+
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'ArrowDown') {
+    if (event.key === 'Enter' && random) {
+      event.preventDefault();
+      pick(random);
+    } else if (event.key === 'ArrowDown') {
       event.preventDefault();
       setOpen(true);
       setActive((i) => Math.min(i + 1, results.length - 1));
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       setActive((i) => Math.max(i - 1, 0));
-    } else if (event.key === 'Enter' && showList && results[active]) {
+    } else if (event.key === 'Enter' && showList && settled && results[active]) {
       event.preventDefault();
       pick(results[active]);
     } else if (event.key === 'Escape') {
@@ -69,6 +98,7 @@ export function GuessInput({ guessedIds, disabled = false, onGuess }: Props) {
         disabled={disabled}
         value={text}
         onChange={(event) => {
+          setRandom(null); // typing replaces the random pick
           setText(event.target.value);
           setOpen(true);
           setActive(0);
@@ -78,6 +108,29 @@ export function GuessInput({ guessedIds, disabled = false, onGuess }: Props) {
         // 16px+ text stops iOS from zooming the page when the field gets focus
         className="min-h-12 w-full rounded-lg border-2 border-slate-300 bg-white px-4 py-2 text-base focus:border-slate-900 focus:outline-none disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:focus:border-white"
       />
+      <div className="mt-2 flex gap-2">
+        <button type="button" onClick={rollRandom} disabled={disabled || randomMovie.isPending} className={SECONDARY}>
+          {randomMovie.isPending ? 'Rolling…' : 'Random'}
+        </button>
+        <button type="button" onClick={onSkip} disabled={disabled} className={SECONDARY}>
+          {lastAttempt ? 'Give up' : 'Skip clue'}
+        </button>
+        {random && (
+          <button
+            type="button"
+            onClick={() => pick(random)}
+            disabled={disabled}
+            className="ml-auto min-h-11 rounded-lg bg-slate-900 px-4 text-sm font-bold text-white disabled:opacity-50 dark:bg-white dark:text-slate-900"
+          >
+            Guess
+          </button>
+        )}
+      </div>
+      {randomMovie.isError && (
+        <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">
+          {errorText(randomMovie.error)}
+        </p>
+      )}
       {showList && (
         <ul
           id={listId}

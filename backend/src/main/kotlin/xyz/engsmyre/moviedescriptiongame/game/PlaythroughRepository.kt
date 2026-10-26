@@ -3,6 +3,7 @@ package xyz.engsmyre.moviedescriptiongame.game
 import kotlinx.coroutines.reactive.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.await
+import org.springframework.r2dbc.core.awaitOne
 import org.springframework.r2dbc.core.awaitOneOrNull
 import org.springframework.r2dbc.core.awaitRowsUpdated
 import org.springframework.stereotype.Repository
@@ -64,8 +65,8 @@ class PlaythroughRepository(private val db: DatabaseClient) {
     }
 
     suspend fun rounds(id: UUID): List<RoundState> =
-        db.sql("SELECT position, status FROM playthrough_round WHERE playthrough_id = :id ORDER BY position")
-            .bind("id", id).map { r -> RoundState(r.int("position"), RoundStatus.valueOf(r.string("status"))) }
+        db.sql("SELECT position, status, skips FROM playthrough_round WHERE playthrough_id = :id ORDER BY position")
+            .bind("id", id).map { r -> RoundState(r.int("position"), RoundStatus.valueOf(r.string("status")), r.int("skips")) }
             .all().collectList().awaitSingle()
 
     suspend fun guesses(id: UUID): List<GuessRecord> =
@@ -76,11 +77,6 @@ class PlaythroughRepository(private val db: DatabaseClient) {
             GuessRecord(r.int("position"), r.int("attempt_no"), r.int("tmdb_id"), r.string("title"), r.intOrNull("release_year"), r.bool("correct"))
         }.all().collectList().awaitSingle()
 
-    suspend fun reveals(id: UUID): List<RevealRecord> =
-        db.sql("SELECT position, clue_id FROM revealed_clue WHERE playthrough_id = :id ORDER BY revealed_at")
-            .bind("id", id).map { r -> RevealRecord(r.int("position"), r.string("clue_id")) }
-            .all().collectList().awaitSingle()
-
     suspend fun insertGuess(id: UUID, guess: GuessRecord, now: Instant) {
         db.sql(
             """INSERT INTO guess (playthrough_id, position, attempt_no, tmdb_id, title, release_year, correct, created_at)
@@ -90,12 +86,13 @@ class PlaythroughRepository(private val db: DatabaseClient) {
             .bind("correct", guess.correct).bind("now", now).await()
     }
 
-    /** Idempotent: revealing the same clue twice keeps the first reveal. */
-    suspend fun insertReveal(id: UUID, position: Int, clueId: String, attemptsUsed: Int, now: Instant) {
-        db.sql(
-            """INSERT INTO revealed_clue (playthrough_id, position, clue_id, revealed_at, attempts_used_at_reveal)
-               VALUES (:id, :pos, :clue, :now, :attempts) ON CONFLICT DO NOTHING"""
-        ).bind("id", id).bind("pos", position).bind("clue", clueId).bind("now", now).bind("attempts", attemptsUsed).await()
+    suspend fun skips(id: UUID, position: Int): Int =
+        db.sql("SELECT skips FROM playthrough_round WHERE playthrough_id = :id AND position = :pos")
+            .bind("id", id).bind("pos", position).map { r -> r.int("skips") }.awaitOne()
+
+    suspend fun addSkip(id: UUID, position: Int) {
+        db.sql("UPDATE playthrough_round SET skips = skips + 1 WHERE playthrough_id = :id AND position = :pos")
+            .bind("id", id).bind("pos", position).await()
     }
 
     suspend fun setRoundStatus(id: UUID, position: Int, status: RoundStatus) {

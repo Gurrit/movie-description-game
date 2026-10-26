@@ -1,0 +1,64 @@
+# Weekly dependency updates. Minor and patch updates are grouped into one PR per ecosystem to keep the
+# noise down; major updates arrive on their own so they get a proper look.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      gradle-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm # also covers pnpm lockfiles
+    directory: /app
+    schedule:
+      interval: weekly
+    groups:
+      app-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Pinned to 5.9.x: openapi-typescript and typescript-eslint need TypeScript's JavaScript API
+      - dependency-name: typescript
+        update-types: [version-update:semver-major, version-update:semver-minor]
+
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule:
+      interval: weekly
+    groups:
+      e2e-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: typescript
+        update-types: [version-update:semver-major, version-update:semver-minor]
+
+  - package-ecosystem: docker
+    directories: [/backend, /app]
+    schedule:
+      interval: weekly
+    ignore:
+      # Runtime majors are deliberate decisions (LTS lines), not automatic bumps
+      - dependency-name: eclipse-temurin
+        update-types: [version-update:semver-major]
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: docker-compose
+    directories: [/, /e2e]
+    schedule:
+      interval: weekly
+    ignore:
+      # Must stay on the major that production runs
+      - dependency-name: postgres
+        update-types: [version-update:semver-major]
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

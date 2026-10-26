@@ -16,7 +16,6 @@ erDiagram
     movie ||--o{ game_movie : "used in"
     playthrough ||--|{ playthrough_round : "has"
     playthrough_round ||--o{ guess : "attempts"
-    playthrough_round ||--o{ revealed_clue : "reveals"
 
     player {
         uuid id PK
@@ -60,6 +59,7 @@ erDiagram
         uuid playthrough_id PK,FK
         smallint position PK
         text status "PENDING | ACTIVE | SOLVED | FAILED"
+        smallint skips "attempts given up without a guess"
     }
     guess {
         uuid playthrough_id PK,FK
@@ -71,13 +71,6 @@ erDiagram
         boolean correct
         timestamptz created_at
     }
-    revealed_clue {
-        uuid playthrough_id PK,FK
-        smallint position PK,FK
-        text clue_id PK
-        timestamptz revealed_at
-        smallint attempts_used_at_reveal
-    }
 ```
 
 The model has two halves:
@@ -88,7 +81,7 @@ The model has two halves:
 Naming in the API: the `Game` object in the OpenAPI contract is the *player's view* (the shared game plus that player's playthrough), not a table.
 
 ## Schema (initial)
-The authoritative DDL is `backend/src/main/resources/db/migration/V1__init.sql`; this is a copy.
+The authoritative DDL is `backend/src/main/resources/db/migration/` (`V1__init.sql`, then `V2__sequential_clues.sql`, which rewrote the stored clues into the unlock order and dropped `revealed_clue`, then `V3__skips.sql`, which added `playthrough_round.skips`); this is the resulting schema.
 
 ```sql
 CREATE TABLE player (
@@ -150,6 +143,7 @@ CREATE TABLE playthrough_round (
   playthrough_id uuid NOT NULL REFERENCES playthrough (id),
   position       smallint NOT NULL,
   status         text NOT NULL CHECK (status IN ('PENDING', 'ACTIVE', 'SOLVED', 'FAILED')),
+  skips          smallint NOT NULL DEFAULT 0,
   PRIMARY KEY (playthrough_id, position)
 );
 
@@ -167,16 +161,6 @@ CREATE TABLE guess (
   FOREIGN KEY (playthrough_id, position) REFERENCES playthrough_round (playthrough_id, position)
 );
 
-CREATE TABLE revealed_clue (
-  playthrough_id          uuid NOT NULL,
-  position                smallint NOT NULL,
-  clue_id                 text NOT NULL,
-  revealed_at             timestamptz NOT NULL,
-  attempts_used_at_reveal smallint NOT NULL,
-  PRIMARY KEY (playthrough_id, position, clue_id),
-  FOREIGN KEY (playthrough_id, position) REFERENCES playthrough_round (playthrough_id, position)
-);
-
 CREATE INDEX playthrough_player_idx ON playthrough (player_id);
 ```
 
@@ -187,7 +171,7 @@ Notes:
 - `UNIQUE (player_id, game_id)` allows one playthrough per player per game, hence per day.
 - `guess` primary key `(playthrough_id, position, attempt_no)` makes concurrent double submits fail on insert instead of consuming two attempts; the service maps the unique-violation to `409`. `title`/`release_year` come from the TMDB lookup done when the guess is submitted.
 - Stats are an aggregate query over `playthrough`/`playthrough_round` (indexed by `player_id`). Counters are not stored initially.
-- `clues` JSONB shape: `[{"id":"plot","type":"PLOT","order":1,"content":{...}}, ...]`, where `content` is one flat object with optional fields (`text`, `genres`, `runtimeMinutes`, `releaseYear`, `people`), the same shape as `ClueContent` in the API; null fields are omitted. Content shapes per type are documented in `../rules/02-clues.md`. The reader tolerates unknown fields.
+- `clues` JSONB shape: `[{"id":"metadata","type":"METADATA","order":1,"content":{...}}, ...]`, where `content` is one flat object with optional fields (`text`, `genres`, `runtimeMinutes`, `releaseYear`, `names`), the same shape as `ClueContent` in the API except that the stored `releaseYear` is exact and only `GameViewMapper` turns it into the API's `decade`; null fields are omitted. Content shapes per type are documented in `../rules/02-clues.md`. The reader tolerates unknown fields.
 - Guess evaluation, round advance and playthrough update happen in **one transaction** (`TransactionalOperator`); the `playthrough_round` row is locked (`SELECT … FOR UPDATE`) while evaluating a guess.
 
 ## Local and test

@@ -9,10 +9,8 @@
 - Localization (UI and TMDB content are in English).
 
 ## Designed-for (kept easy)
-- Alternative reveal policies, such as one clue per attempt, or a reveal costing an attempt ([02](02-clues.md#generic-clue-model)).
-- Per-item reveals within PEOPLE.
-- New clue types (e.g. poster crop, keywords, production company).
-- Scoring derived from stored attempts and reveals.
+- A different clue order or new clue types (e.g. poster crop, keywords, production company): the order is set in `ClueBuilder` ([02](02-clues.md#generic-clue-model)).
+- Scoring derived from stored attempts.
 
 ## Open items to settle during implementation
 1. ~~Guess response auto-advance vs `next` call~~: resolved, auto-advance (see [05](05-api.md)).

@@ -63,15 +63,19 @@ class GameFlowIntegrationTest(
         assertEquals("IN_PROGRESS", started["status"].asString())
         assertEquals("2026-10-22", started["date"].asString())
         assertEquals(7, started["roundsPerGame"].asInt())
-        assertEquals(3, started["attemptsPerRound"].asInt())
+        assertEquals(7, started["attemptsPerRound"].asInt())
         assertEquals(0, started["currentRound"].asInt())
 
         val rounds = rounds(started)
         assertEquals(7, rounds.size)
         assertEquals("ACTIVE", rounds[0]["status"].asString())
         assertTrue(rounds.drop(1).all { it["status"].asString() == "PENDING" && it["clues"].size() == 0 })
-        assertEquals(listOf("plot", "tagline", "metadata", "people"), rounds[0]["clues"].map { it["id"].asString() })
-        assertTrue(rounds[0]["clues"].none { it["revealed"].asBoolean() || it.has("content") })
+        assertEquals(
+            listOf("metadata", "writer", "studio", "director", "cast", "tagline", "plot"),
+            rounds[0]["clues"].map { it["id"].asString() },
+        )
+        assertEquals(listOf(true, false, false, false, false, false, false), rounds[0]["clues"].map { it["revealed"].asBoolean() })
+        assertEquals(listOf(true, false, false, false, false, false, false), rounds[0]["clues"].map { it.has("content") })
         assertFalse(rounds[0].has("answer"))
 
         val again = api.start(token)
@@ -81,36 +85,92 @@ class GameFlowIntegrationTest(
     }
 
     @Test
-    fun `revealing a clue shows its content and is idempotent`() {
+    fun `each wrong guess unlocks the next clue, and the reveal endpoint is gone`() = runTest {
+        val answers = answers().ifEmpty { api.start(api.createPlayer()); answers() }
         val token = api.createPlayer().also { api.start(it) }
+        val order = listOf("metadata", "writer", "studio", "director", "cast", "tagline", "plot")
 
-        val first = api.reveal(token, "tagline")
-        assertEquals(200, first.status)
-        val clue = rounds(first)[0]["clues"].single { it["id"].asString() == "tagline" }
-        assertTrue(clue["revealed"].asBoolean())
-        assertTrue(clue["content"]["text"].asString().isNotBlank())
-        assertEquals(0, rounds(first)[0]["attemptsUsed"].asInt(), "revealing costs nothing")
+        fun unlocked(game: ApiResult) = rounds(game)[0]["clues"].filter { it.has("content") }.map { it["id"].asString() }
 
-        assertEquals(200, api.reveal(token, "tagline").status)
-        val people = rounds(api.reveal(token, "people"))[0]["clues"].single { it["id"].asString() == "people" }
-        assertEquals(5, people["content"]["people"].size())
+        var state = api.today(token)
+        assertEquals(order.take(1), unlocked(state))
+        for (wrong in 1..6) {
+            state = api.guess(token, wrongGuessFor(answers[0], wrong))
+            assertEquals(order.take(wrong + 1), unlocked(state), "after $wrong wrong guesses")
+        }
 
-        val unknown = api.reveal(token, "nope")
-        assertEquals(404, unknown.status)
-        assertEquals("CLUE_NOT_FOUND", unknown.code)
+        val content = rounds(state)[0]["clues"].associate { it["id"].asString() to it["content"] }
+        assertTrue(content.getValue("metadata")["genres"].size() > 0)
+        assertEquals(0, content.getValue("metadata")["decade"].asInt() % 10)
+        assertFalse(content.getValue("metadata").has("releaseYear"), "the exact year stays on the server")
+        assertEquals(1, content.getValue("writer")["names"].size())
+        assertEquals(1, content.getValue("studio")["names"].size())
+        assertEquals(1, content.getValue("director")["names"].size())
+        assertEquals(3, content.getValue("cast")["names"].size())
+        assertTrue(content.getValue("tagline")["text"].asString().isNotBlank())
+        assertTrue(content.getValue("plot")["text"].asString().isNotBlank())
+        assertEquals(listOf("Hero", "Sidekick", "Villain", "Bystander").filter { content.toString().contains(it) }, emptyList<String>(), "no characters")
+
+        assertEquals(404, api.call("POST", "/game/today/rounds/current/clues/plot/reveal", token, validate = false).status)
     }
 
     @Test
-    fun `clue text never contains the movie title`() = runTest {
+    fun `skipping uses an attempt and unlocks the next clue`() = runTest {
+        val answers = answers().ifEmpty { api.start(api.createPlayer()); answers() }
         val token = api.createPlayer().also { api.start(it) }
-        for (id in listOf("plot", "tagline")) api.reveal(token, id)
-        val round = rounds(api.today(token))[0]
-        // titles are "Movie <id> Title", the overview and tagline of the fixtures never mention them,
-        // but the masks must not have produced garbage either
-        for (clue in round["clues"].filter { it["revealed"].asBoolean() }) {
-            assertFalse(clue["content"]["text"].asString().contains("Movie ", ignoreCase = true))
+        fun unlocked(game: ApiResult) = rounds(game)[0]["clues"].count { it.has("content") }
+
+        val skipped = api.skip(token)
+        assertEquals(200, skipped.status)
+        assertEquals(1, rounds(skipped)[0]["attemptsUsed"].asInt())
+        assertEquals(0, rounds(skipped)[0]["guesses"].size())
+        assertEquals(2, unlocked(skipped))
+
+        // a guess after a skip is the second attempt and unlocks one more
+        val guessed = api.guess(token, wrongGuessFor(answers[0]))
+        assertEquals(2, rounds(guessed)[0]["attemptsUsed"].asInt())
+        assertEquals(3, unlocked(guessed))
+        assertEquals(4, unlocked(api.skip(token)))
+        assertEquals(3, rounds(api.today(token))[0]["attemptsUsed"].asInt(), "reload keeps the skips")
+    }
+
+    @Test
+    fun `skipping the last attempt fails the round and moves on`() = runTest {
+        val token = api.createPlayer().also { api.start(it) }
+        var state = api.today(token)
+        for (i in 1..6) {
+            state = api.skip(token)
+            assertEquals("ACTIVE", rounds(state)[0]["status"].asString())
         }
-        assertTrue(answers().size == 7)
+        state = api.skip(token)
+        assertEquals("FAILED", rounds(state)[0]["status"].asString())
+        assertEquals(7, rounds(state)[0]["attemptsUsed"].asInt())
+        assertTrue(rounds(state)[0].has("answer"))
+        assertEquals(1, state["currentRound"].asInt())
+        assertEquals(0, rounds(state)[1]["attemptsUsed"].asInt())
+        assertEquals(1, rounds(state)[1]["clues"].count { it.has("content") })
+    }
+
+    @Test
+    fun `skip needs a started game and an unfinished one`() = runTest {
+        val answers = answers().ifEmpty { api.start(api.createPlayer()); answers() }
+        val token = api.createPlayer()
+        assertEquals("GAME_NOT_STARTED", api.skip(token).code)
+        assertEquals(401, api.call("POST", "/game/today/rounds/current/skip").status)
+
+        api.start(token)
+        for (answer in answers) api.guess(token, answer)
+        assertEquals("GAME_COMPLETE", api.skip(token).code)
+    }
+
+    @Test
+    fun `a correct guess unlocks nothing and shows every clue of the round`() = runTest {
+        val answers = answers().ifEmpty { api.start(api.createPlayer()); answers() }
+        val token = api.createPlayer().also { api.start(it) }
+        val solved = api.guess(token, answers[0])
+        assertTrue(rounds(solved)[0]["clues"].all { it["revealed"].asBoolean() && it.has("content") })
+        // the next round starts over with one clue
+        assertEquals(1, rounds(solved)[1]["clues"].count { it["revealed"].asBoolean() })
     }
 
     @Test
@@ -146,9 +206,9 @@ class GameFlowIntegrationTest(
         assertEquals("ACTIVE", rounds(solved)[1]["status"].asString())
         assertTrue(rounds(solved)[0]["clues"].all { it.has("content") }, "ended rounds show all clues")
 
-        // Round 1: three wrong guesses fail the round; attempts do not carry over
+        // Round 1: all seven attempts wrong fail the round; attempts do not carry over
         var state = solved
-        for (i in 0 until 3) state = api.guess(token, wrongGuessFor(answers[1], i))
+        for (i in 0 until 7) state = api.guess(token, wrongGuessFor(answers[1], i))
         assertEquals("FAILED", rounds(state)[1]["status"].asString())
         assertEquals(answers[1], rounds(state)[1]["answer"]["tmdbId"].asInt())
         assertEquals(2, state["currentRound"].asInt())
@@ -162,8 +222,7 @@ class GameFlowIntegrationTest(
 
         // A finished game is read-only
         assertEquals("GAME_COMPLETE", api.guess(token, answers[0]).code)
-        assertEquals("GAME_COMPLETE", api.reveal(token, "plot").code)
-        assertEquals("COMPLETE", api.today(token)["status"].asString())
+                assertEquals("COMPLETE", api.today(token)["status"].asString())
         assertEquals(200, api.start(token).status)
 
         val stats = api.stats(token)
@@ -238,6 +297,16 @@ class GameFlowIntegrationTest(
         assertEquals(422, tooShort.status)
         assertEquals("VALIDATION_FAILED", tooShort.code)
         assertEquals(401, api.call("GET", "/movies/search", query = mapOf("q" to "movie")).status)
+    }
+
+    @Test
+    fun `random movie comes from the pool and needs a token`() {
+        val token = api.createPlayer()
+        val movie = api.call("GET", "/movies/random", token)
+        assertEquals(200, movie.status)
+        assertTrue(movie["tmdbId"].asInt() in 1..TmdbWireMock.MOVIES)
+        assertTrue(movie["title"].asString().isNotBlank())
+        assertEquals(401, api.call("GET", "/movies/random").status)
     }
 
     @Test

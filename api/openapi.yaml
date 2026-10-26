@@ -3,11 +3,12 @@ info:
   title: Movie Description Game API
   description: |
     A daily game: every UTC day there is one set of movies (default 7). A player plays the set
-    round by round, revealing clues and guessing the movie with a limited number of attempts per round.
+    round by round, guessing the movie with a limited number of attempts per round. A round starts
+    with one clue; every wrong guess unlocks the next one.
 
     The server is the single source of truth for game state. Every mutating game call returns the
     updated `Game`. Clue content and answers are only included once earned.
-  version: 2.0.0
+  version: 3.0.0
 
 servers:
   - url: /api
@@ -102,18 +103,14 @@ paths:
         '503':
           $ref: '#/components/responses/Problem'
 
-  /game/today/rounds/current/clues/{clueId}/reveal:
+  /game/today/rounds/current/skip:
     post:
       tags: [Game]
-      operationId: revealClue
-      summary: Reveal a clue in the active round
-      description: Idempotent. Revealing has no effect on attempts.
-      parameters:
-        - name: clueId
-          in: path
-          required: true
-          schema:
-            type: string
+      operationId: skipClue
+      summary: Skip to the next clue of the active round
+      description: |
+        Gives up one attempt without naming a movie, which unlocks the next clue just like a wrong
+        guess. Skipping the last attempt fails the round. Errors: 409 GAME_COMPLETE.
       responses:
         '200':
           description: The updated game
@@ -134,8 +131,9 @@ paths:
       operationId: submitGuess
       summary: Guess the movie of the active round
       description: |
-        Uses one attempt. When the round ends (correct guess, or attempts exhausted) the answer is
-        revealed in the round and the game moves on to the next round (or completes).
+        Uses one attempt. A wrong guess unlocks the next clue of the round. When the round ends
+        (correct guess, or attempts exhausted) the answer and all clues are shown and the game moves
+        on to the next round (or completes).
         Errors: 409 ROUND_OVER / ALREADY_GUESSED / GAME_COMPLETE (no attempt consumed).
       requestBody:
         required: true
@@ -191,6 +189,26 @@ paths:
         '503':
           $ref: '#/components/responses/Problem'
 
+  /movies/random:
+    get:
+      tags: [Movie]
+      operationId: randomMovie
+      summary: A random well-known movie, for a guess to try
+      description: Drawn from the same pool the daily games are built from, so it says nothing about the answer.
+      responses:
+        '200':
+          description: A random movie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovieSuggestion'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -224,7 +242,7 @@ components:
           type: string
           description: |
             Stable machine-readable code, e.g. GAME_NOT_STARTED, GAME_COMPLETE, ROUND_OVER,
-            ALREADY_GUESSED, CLUE_NOT_FOUND, INVALID_TOKEN, RATE_LIMITED, TMDB_UNAVAILABLE,
+            ALREADY_GUESSED, INVALID_TOKEN, RATE_LIMITED, TMDB_UNAVAILABLE,
             GENERATION_FAILED, VALIDATION_FAILED.
 
     Player:
@@ -325,6 +343,7 @@ components:
         attemptsUsed:
           type: integer
           format: int32
+          description: Guesses plus skips
         guesses:
           type: array
           items:
@@ -375,7 +394,7 @@ components:
     ClueType:
       type: string
       description: Open set; clients must tolerate unknown values
-      enum: [PLOT, TAGLINE, METADATA, PEOPLE]
+      enum: [METADATA, WRITER, STUDIO, DIRECTOR, CAST, TAGLINE, PLOT]
 
     Clue:
       type: object
@@ -389,18 +408,21 @@ components:
         order:
           type: integer
           format: int32
+          description: Position in the order the clues unlock (1 is shown from the start)
         revealed:
           type: boolean
+          description: Whether the clue is unlocked for the player (all of them once the round has ended)
         content:
           allOf:
             - $ref: '#/components/schemas/ClueContent'
           nullable: true
-          description: Only present when revealed (or the round has ended)
+          description: Only present when the clue is unlocked
 
     ClueContent:
       description: |
         Type-specific payload. Which fields are set depends on the clue type:
-        PLOT/TAGLINE -> text; METADATA -> genres, runtimeMinutes, releaseYear; PEOPLE -> people.
+        METADATA -> genres, runtimeMinutes, decade; WRITER/STUDIO/DIRECTOR/CAST -> names;
+        TAGLINE/PLOT -> text.
       type: object
       properties:
         text:
@@ -412,23 +434,12 @@ components:
         runtimeMinutes:
           type: integer
           format: int32
-        releaseYear:
+        decade:
           type: integer
           format: int32
-        people:
+          description: First year of the decade the movie was released in, e.g. 1990 for the 1990s. Never the exact year.
+        names:
           type: array
+          description: Real names of the people only, never the characters they play
           items:
-            $ref: '#/components/schemas/PersonClue'
-
-    PersonClue:
-      type: object
-      required: [role, name]
-      properties:
-        role:
-          type: string
-          enum: [CAST, DIRECTOR, WRITER]
-        name:
-          type: string
-        character:
-          type: string
-          nullable: true
+            type: string

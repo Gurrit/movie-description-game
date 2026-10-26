@@ -9,14 +9,30 @@ import org.springframework.web.bind.annotation.RestController
 import xyz.engsmyre.moviedescriptiongame.api.generated.MovieApi
 import xyz.engsmyre.moviedescriptiongame.api.model.MovieSuggestion
 import xyz.engsmyre.moviedescriptiongame.common.ApiException
+import xyz.engsmyre.moviedescriptiongame.config.TmdbProperties
 import xyz.engsmyre.moviedescriptiongame.tmdb.TmdbClient
+import xyz.engsmyre.moviedescriptiongame.tmdb.TmdbDiscoverPage
+import xyz.engsmyre.moviedescriptiongame.tmdb.TmdbUnavailableException
 import java.time.Duration
+import kotlin.random.Random
 
-/** Autocomplete for guesses, proxied through the backend so the TMDB token stays server-side. */
+/** Autocomplete and random picks for guesses, proxied through the backend so the TMDB token stays server-side. */
 @RestController
-class MovieController(private val tmdb: TmdbClient) : MovieApi {
+class MovieController(private val tmdb: TmdbClient, private val tmdbProps: TmdbProperties) : MovieApi {
 
     private val cache = Caffeine.newBuilder().maximumSize(1_000).expireAfterWrite(Duration.ofMinutes(10)).build<String, List<MovieSuggestion>>()
+
+    private val pages = Caffeine.newBuilder().maximumSize(200).expireAfterWrite(Duration.ofHours(1)).build<Int, TmdbDiscoverPage>()
+
+    private suspend fun page(n: Int): TmdbDiscoverPage = pages.getIfPresent(n) ?: tmdb.discover(n).also { pages.put(n, it) }
+
+    /** A random movie of the pool the daily games are drawn from, so it hints at nothing. */
+    override suspend fun randomMovie(): ResponseEntity<MovieSuggestion> {
+        val poolPages = minOf(tmdbProps.maxPoolPages, page(1).totalPages).coerceAtLeast(1)
+        val movie = (page(Random.nextInt(1, poolPages + 1)).results.randomOrNull() ?: page(1).results.randomOrNull())
+            ?: throw TmdbUnavailableException("TMDB returned no movies")
+        return ResponseEntity.ok(MovieSuggestion(movie.id, movie.title, movie.releaseYear))
+    }
 
     override fun searchMovies(q: String): ResponseEntity<Flow<MovieSuggestion>> {
         val query = q.trim()

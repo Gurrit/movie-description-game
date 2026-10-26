@@ -44,7 +44,7 @@ class MovieSelectorTest {
         val movies = selector(FakeTmdb(pages = 3, perPage = 20)).select(7, emptySet(), Random(1))
         assertEquals(7, movies.size)
         assertEquals(7, movies.map { it.id }.toSet().size)
-        assertTrue(movies.all { it.clues.size == 4 })
+        assertTrue(movies.all { it.clues.size == 7 })
     }
 
     @Test

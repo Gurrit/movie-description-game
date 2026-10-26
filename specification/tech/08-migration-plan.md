@@ -126,3 +126,14 @@ Update `README.md` (setup, commands, architecture pointer), remove dead files an
 
 ## Suggested order summary
 0 prepare → 1 contract → 2 backend foundations → 3 backend domain → 4 frontend → 5 containers + e2e → 6 CI → 7 deploy → 8 cleanup. Phases 3 and 4 can run in parallel once Phase 1 is done, since the frontend can develop against MSW mocks generated from the contract.
+
+## Change after phase 5: clues unlock per wrong guess
+The game loop changed from "the player reveals clues freely" to "every wrong guess unlocks the next clue". Order: details, writer, director, top billing (actors' names only, no characters), tagline, plot; the first is shown from the start and `attemptsPerRound` defaults to 6.
+- Contract (`openapi.yaml` 3.0.0): the reveal endpoint is gone; `ClueType` is `METADATA, WRITER, DIRECTOR, CAST, TAGLINE, PLOT` (`PEOPLE` removed); `ClueContent.people` became `names`.
+- Backend: `RevealPolicy`, reveal service/repository code and the `revealed_clue` table were removed; unlocking is derived in `GameViewMapper`. `V2__sequential_clues.sql` rewrites the clues of movies already stored and drops the table.
+- Frontend: locked clues are plain cards; no reveal mutation or buttons.
+
+### Then: studio clue, skip and random
+- Studio is the third clue (`STUDIO`, from TMDB's first `production_companies`; movies without one are rejected), so a round has seven clues and `attemptsPerRound` defaults to 7. Stored movies keep their old clues, since unlocking works on `order`.
+- Skip: `POST /game/today/rounds/current/skip` (an attempt that unlocks the next clue; `V3__skips.sql` adds `playthrough_round.skips`).
+- Random: `GET /movies/random`, used by the Random button, which fills the guess box.

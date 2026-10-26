@@ -50,7 +50,7 @@ class ApiClient(val web: WebTestClient, private val json: JsonMapper) {
 
     fun start(token: String) = call("POST", "/game/today", token)
     fun today(token: String) = call("GET", "/game/today", token)
-    fun reveal(token: String, clueId: String) = call("POST", "/game/today/rounds/current/clues/$clueId/reveal", token)
+    fun skip(token: String) = call("POST", "/game/today/rounds/current/skip", token)
     fun guess(token: String, tmdbId: Int) = call("POST", "/game/today/rounds/current/guesses", token, """{"tmdbId":$tmdbId}""")
     fun stats(token: String) = call("GET", "/players/me/stats", token)
 }

@@ -20,4 +20,4 @@ Defined behavior is in `../rules/05-api.md`. Additions at technical level:
 - `GET /api/healthz/liveness` and `GET /api/healthz/readiness` (readiness includes DB reachability), unauthenticated. These are Spring Actuator health groups with the health endpoint mapped to `/healthz`. Actuator shares the application's `/api` base path. They expose only UP/DOWN (no details), so they can stay public, which also lets an external uptime monitor use them; container healthchecks call them on `localhost:8080`.
 
 ## Rate limiting
-- Applied at the edge if available; otherwise, in-process token bucket per IP for `POST /players` and `GET /movies/search` (e.g. Bucket4j). Behind a proxy, use `X-Forwarded-For` (configure Spring `forward-headers-strategy`).
+- Applied at the edge if available; otherwise, in-process token bucket per IP for `POST /players` and `GET /movies/search` (and `GET /movies/random`, same bucket) (e.g. Bucket4j). Behind a proxy, use `X-Forwarded-For` (configure Spring `forward-headers-strategy`).

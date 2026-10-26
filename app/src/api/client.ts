@@ -40,10 +40,12 @@ async function authFetch(input: Request): Promise<Response> {
   if (new URL(input.url).pathname.endsWith('/players') && input.method === 'POST')
     return fetch(input);
 
-  const response = await fetch(withToken(input.clone(), await ensureToken()));
+  const token = await ensureToken();
+  const response = await fetch(withToken(input.clone(), token));
   if (response.status !== 401) return response;
 
-  clearToken();
+  // Only forget the token that was rejected: a concurrent call may already have replaced it
+  if (getToken() === token) clearToken();
   return fetch(withToken(input.clone(), await ensureToken()));
 }
 

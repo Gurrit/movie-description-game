@@ -13,32 +13,24 @@ export const MOVIES: FakeMovie[] = [
 ];
 
 const CLUES = (movie: FakeMovie): Clue[] => [
-  { id: 'plot', type: 'PLOT', order: 1, revealed: false, content: { text: `Plot of ${movie.id}` } },
-  { id: 'tagline', type: 'TAGLINE', order: 2, revealed: false, content: { text: 'A tagline' } },
   {
     id: 'metadata',
     type: 'METADATA',
-    order: 3,
+    order: 1,
     revealed: false,
-    content: { genres: ['Drama'], runtimeMinutes: 117, releaseYear: movie.year },
+    content: { genres: ['Drama'], runtimeMinutes: 117, decade: Math.floor(movie.year / 10) * 10 },
   },
-  {
-    id: 'people',
-    type: 'PEOPLE',
-    order: 4,
-    revealed: false,
-    content: {
-      people: [
-        { role: 'DIRECTOR', name: 'Dora Director' },
-        { role: 'CAST', name: 'Ann Actor', character: 'Hero' },
-      ],
-    },
-  },
+  { id: 'writer', type: 'WRITER', order: 2, revealed: false, content: { names: ['Wally Writer'] } },
+  { id: 'studio', type: 'STUDIO', order: 3, revealed: false, content: { names: ['Studio Pictures'] } },
+  { id: 'director', type: 'DIRECTOR', order: 4, revealed: false, content: { names: ['Dora Director'] } },
+  { id: 'cast', type: 'CAST', order: 5, revealed: false, content: { names: ['Ann Actor', 'Bo Actor'] } },
+  { id: 'tagline', type: 'TAGLINE', order: 6, revealed: false, content: { text: 'A tagline' } },
+  { id: 'plot', type: 'PLOT', order: 7, revealed: false, content: { text: `Plot of ${movie.id}` } },
 ];
 
 type Playthrough = {
   guesses: GuessResult[][];
-  revealed: Set<string>[];
+  skips: number[];
   statuses: Round['status'][];
 };
 
@@ -49,7 +41,7 @@ type Playthrough = {
 export function createFakeBackend({ answers = [MOVIES[0]!, MOVIES[2]!], attempts = 2 } = {}) {
   const tokens = new Set<string>();
   const games = new Map<string, Playthrough>();
-  const calls = { createPlayer: 0, search: [] as string[], guess: [] as number[] };
+  const calls = { createPlayer: 0, search: [] as string[], guess: [] as number[], skip: 0, random: 0 };
   let nextToken = 1;
 
   const problem = (status: number, code: string, title: string) =>
@@ -72,14 +64,15 @@ export function createFakeBackend({ answers = [MOVIES[0]!, MOVIES[2]!], attempts
       return {
         index: i,
         status,
-        attemptsUsed: pt.guesses[i]!.length,
+        attemptsUsed: pt.guesses[i]!.length + pt.skips[i]!,
         guesses: status === 'PENDING' ? [] : pt.guesses[i]!,
         clues:
           status === 'PENDING'
             ? []
             : CLUES(movie).map((c) => {
-                const revealed = pt.revealed[i]!.has(c.id);
-                return { ...c, revealed, content: revealed || ended ? c.content : undefined };
+                // The first clue is free, every wrong guess unlocks the next one
+                const revealed = ended || c.order <= pt.guesses[i]!.length + pt.skips[i]! + 1;
+                return { ...c, revealed, content: revealed ? c.content : undefined };
               }),
         answer: ended
           ? { tmdbId: movie.id, title: movie.title, year: movie.year, posterPath: '/p.jpg' }
@@ -118,19 +111,11 @@ export function createFakeBackend({ answers = [MOVIES[0]!, MOVIES[2]!], attempts
       if (created) {
         games.set(token, {
           guesses: answers.map(() => []),
-          revealed: answers.map(() => new Set()),
+          skips: answers.map(() => 0),
           statuses: answers.map((_, i) => (i === 0 ? 'ACTIVE' : 'PENDING')),
         });
       }
       return HttpResponse.json(view(token), { status: created ? 201 : 200 });
-    }),
-    http.post(`${API}/game/today/rounds/current/clues/:clueId/reveal`, ({ request, params }) => {
-      const token = authorized(request);
-      if (!token) return problem(401, 'INVALID_TOKEN', 'Missing or invalid token');
-      const pt = games.get(token);
-      if (!pt) return problem(404, 'GAME_NOT_STARTED', 'Game not started');
-      pt.revealed[pt.statuses.indexOf('ACTIVE')]!.add(String(params.clueId));
-      return HttpResponse.json(view(token));
     }),
     http.post(`${API}/game/today/rounds/current/guesses`, async ({ request }) => {
       const token = authorized(request);
@@ -146,12 +131,32 @@ export function createFakeBackend({ answers = [MOVIES[0]!, MOVIES[2]!], attempts
       const movie = MOVIES.find((m) => m.id === tmdbId)!;
       const correct = tmdbId === answers[round]!.id;
       pt.guesses[round]!.push({ tmdbId, title: movie.title, year: movie.year, correct });
-      const ended = correct || pt.guesses[round]!.length >= attempts;
+      const ended = correct || pt.guesses[round]!.length + pt.skips[round]! >= attempts;
       if (ended) {
         pt.statuses[round] = correct ? 'SOLVED' : 'FAILED';
         if (round + 1 < answers.length) pt.statuses[round + 1] = 'ACTIVE';
       }
       return HttpResponse.json(view(token));
+    }),
+    http.post(`${API}/game/today/rounds/current/skip`, ({ request }) => {
+      const token = authorized(request);
+      if (!token) return problem(401, 'INVALID_TOKEN', 'Missing or invalid token');
+      const pt = games.get(token);
+      if (!pt) return problem(404, 'GAME_NOT_STARTED', 'Game not started');
+      const round = pt.statuses.indexOf('ACTIVE');
+      if (round === -1) return problem(409, 'GAME_COMPLETE', 'Game is complete');
+      calls.skip++;
+      pt.skips[round]!++;
+      if (pt.guesses[round]!.length + pt.skips[round]! >= attempts) {
+        pt.statuses[round] = 'FAILED';
+        if (round + 1 < answers.length) pt.statuses[round + 1] = 'ACTIVE';
+      }
+      return HttpResponse.json(view(token));
+    }),
+    http.get(`${API}/movies/random`, ({ request }) => {
+      if (!authorized(request)) return problem(401, 'INVALID_TOKEN', 'Missing or invalid token');
+      const movie = MOVIES[calls.random++ % MOVIES.length]!;
+      return HttpResponse.json({ tmdbId: movie.id, title: movie.title, year: movie.year });
     }),
     http.get(`${API}/movies/search`, ({ request }) => {
       if (!authorized(request)) return problem(401, 'INVALID_TOKEN', 'Missing or invalid token');

@@ -9,7 +9,7 @@
 ## Persistence (PostgreSQL, never purged; table schema in [../tech/03-database.md](../tech/03-database.md))
 - `player`: id, token hash, createdAt, lastSeenAt
 - Games: one per UTC date, shared by all players: the rules it was generated with and 7 ordered movies. Movies (id, title, original title, year, poster path, clues) are stored once, independent of any date.
-- Playthroughs: one per player per game, with status, current round, per-round status, ordered guesses and revealed clues (with timestamps). Unique on (player, game).
+- Playthroughs: one per player per game, with status, current round, per-round status, ordered guesses (with timestamps). Unique on (player, game).
 
 Since a playthrough refers to a game, and a game to its movies, past playthroughs remain reconstructable.
 
@@ -22,4 +22,4 @@ Stats are **personal only**; nothing is shared or ranked between players. A mini
 
 Stats are derived from `playthrough` (computed with an aggregation or maintained counters; implementation choice) and are available via `GET /players/me/stats`. Only `COMPLETE` games count toward "games played"; in-progress games do not.
 
-Raw facts (attempts per round, clues revealed) are stored so streaks, attempt distribution, or a scoring formula can be added later without a migration. They are not shown now.
+Raw facts (attempts per round, guesses) are stored so streaks, attempt distribution, or a scoring formula can be added later without a migration. They are not shown now.

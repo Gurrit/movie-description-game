@@ -74,6 +74,7 @@ class WebClientTmdbClientTest {
             get(urlPathEqualTo("/3/movie/11")).willReturn(
                 json("""{"id":11,"title":"Star Wars","original_title":"Star Wars","overview":"A farm boy.","tagline":"A long time ago",
                     "release_date":"1977-05-25","runtime":121,"poster_path":"/p.jpg","genres":[{"id":1,"name":"Sci-Fi"}],
+                    "production_companies":[{"id":1,"name":"Lucasfilm"},{"id":2,"name":"Twentieth Century Fox"}],
                     "credits":{"cast":[{"name":"Mark Hamill","character":"Luke","order":0}],
                                "crew":[{"name":"George Lucas","job":"Director"}]}}""")
             )
@@ -85,6 +86,7 @@ class WebClientTmdbClientTest {
         assertEquals(121, d.runtimeMinutes)
         assertEquals("/p.jpg", d.posterPath)
         assertEquals(listOf("Sci-Fi"), d.genres)
+        assertEquals(listOf("Lucasfilm", "Twentieth Century Fox"), d.studios)
         assertEquals(listOf(TmdbCastMember("Mark Hamill", "Luke", 0)), d.cast)
         assertEquals(listOf(TmdbCrewMember("George Lucas", "Director")), d.crew)
         server.verify(getRequestedFor(urlPathEqualTo("/3/movie/11")).withQueryParam("append_to_response", equalTo("credits")))
