@@ -42,7 +42,7 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("org.wiremock:wiremock-standalone:3.13.1")
-    testImplementation("com.atlassian.oai:swagger-request-validator-core:2.44.9")
+    testImplementation("com.atlassian.oai:swagger-request-validator-core:3.0.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
